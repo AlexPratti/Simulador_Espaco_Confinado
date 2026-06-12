@@ -63,12 +63,12 @@ fluxo_seguranca = [
         "motivo": "É competência legal do Supervisor auditar todas as proteções coletivas e individuais pré-entrada."
     },
     {
-        "acao": "Ligar o conjunto mecânico para injetar ar limpo ou exaurir os gases estados no fundo do tanque",
+        "acao": "Ligar o conjunto mecânico para injetar ar limpo ou exaurir os gases estagnados no fundo do tanque",
         "correto": "Ventilação",
         "motivo": "A ventilação ou exaustão prévia dispersa possíveis contaminantes tóxicos presentes no interior."
     },
     {
-        "acao": "Introduzir a sonda do detector para efetuar a leitura dos gases (O2, LEL, CO, H2S) em múltiplos níveis",
+        "acao": "Introduzir a sonda do detector para efetuara leitura dos gases (O2, LEL, CO, H2S) em múltiplos níveis",
         "correto": "Detector",
         "motivo": "A atmosfera deve ser avaliada eletronicamente antes de liberar qualquer trabalhador para entrar."
     },
@@ -131,7 +131,7 @@ with col_esquerda:
         on_change=resetar_jogo
     )
     st.session_state.servico_selecionado = servico
-  # --- COLUNA DIREITA: MECÂNICA DO SIMULADOR ---
+    # --- COLUNA DIREITA: MECÂNICA DO SIMULADOR ---
 with col_direita:
     st.header("🕹️ Painel de Decisões Técnicas")
     
@@ -193,13 +193,13 @@ with col_direita:
         l1, l2, l3, l4 = st.columns(4)
         with l1:
             exibir_imagem_repositorio("Isolamento.png", "Isolamento")
-            if st.button("Isolamento Área", key="b_iso", use_container_width=True): avaliar_escolha("Isolamento")
+            if st.button("Isolamento Area", key="b_iso", use_container_width=True): avaliar_escolha("Isolamento")
         with l2:
             exibir_imagem_repositorio("Cadeado.png", "LOTO")
             if st.button("Bloqueios / LOTO", key="b_loto", use_container_width=True): avaliar_escolha("LOTO")
-          with l3:
-            exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalização")
-            if st.button("Sinalização LOTO", key="b_sin", use_container_width=True): avaliar_escolha("Sinalização")
+        with l3:
+            exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalizacao")
+            if st.button("Sinalizacao LOTO", key="b_sin", use_container_width=True): avaliar_escolha("Sinalização")
         with l4:
             exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Teste Resposta")
             if st.button("Bump Test", key="b_bt", use_container_width=True): avaliar_escolha("Teste Resposta")
@@ -207,14 +207,14 @@ with col_direita:
         st.markdown("#### ⚙️ Sistemas Atmosféricos e Coletivos")
         e1, e2, e3 = st.columns(3)
         with e1:
-            exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilação")
-            if st.button("Ventilação/Purga", key="b_vent", use_container_width=True): avaliar_escolha("Ventilação")
+            exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilacao")
+            if st.button("Ventilacao/Purga", key="b_vent", use_container_width=True): avaliar_escolha("Ventilação")
         with e2:
             exibir_imagem_repositorio("DetectorGas.png", "Detector")
-            if st.button("Medição Gases", key="b_det", use_container_width=True): avaliar_escolha("Detector")
+            if st.button("Medicao Gases", key="b_det", use_container_width=True): avaliar_escolha("Detector")
         with e3:
-            exibir_imagem_repositorio("Tripe.png", "Tripé")
-            if st.button("Tripé / Resgate", key="b_tri", use_container_width=True): avaliar_escolha("Tripé")
+            exibir_imagem_repositorio("Tripe.png", "Tripe")
+            if st.button("Tripe / Resgate", key="b_tri", use_container_width=True): avaliar_escolha("Tripé")
 
     if st.session_state.historico_acoes:
         st.markdown("---")
