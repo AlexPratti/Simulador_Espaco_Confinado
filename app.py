@@ -197,9 +197,8 @@ with col_direita:
         with l2:
             exibir_imagem_repositorio("Cadeado.png", "LOTO")
             if st.button("Bloqueios / LOTO", key="b_loto", use_container_width=True): avaliar_escolha("LOTO")
-        with l3:
-            Sinalização.NaoOpere
-            exibir_imagem_repositorio("Sinalização.NaoOpere.png", "Sinalização")
+         with l3:
+            exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalização")
             if st.button("Sinalização LOTO", key="b_sin", use_container_width=True): avaliar_escolha("Sinalização")
         with l4:
             exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Teste Resposta")
