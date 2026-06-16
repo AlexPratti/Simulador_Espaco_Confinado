@@ -37,7 +37,7 @@ servicos_disponiveis = [
     "Manutenção Mecânica em Misturador Industrial"
 ]
 
-# Fluxo sequencial atualizado com dupla validação (Quem + O que)
+# Fluxo sequencial atualizado com dupla validação (Quem + O que) e inclusão da PET
 fluxo_seguranca = [
     {
         "acao": "Instalar a barreira física de pedestais e correntes ao redor do local para delimitar a área de risco",
@@ -70,7 +70,7 @@ fluxo_seguranca = [
         "motivo": "O Supervisor determina e monitora o início da ventilação mecânica prévia para purga de gases e contaminantes."
     },
     {
-        "acao": "Introduzir a sonda do detector para efetuar a leitura dos gases (O2, LEL, CO, H2S) in múltiplos níveis",
+        "acao": "Introduzir a sonda do detector para efetuar a leitura dos gases (O2, LEL, CO, H2S) em múltiplos níveis",
         "quem_correto": "Supervisor",
         "o_que_correto": "Detector",
         "motivo": "A avaliação atmosférica eletrônica inicial é um dever legal exclusivo e obrigatório do Supervisor de Entrada."
@@ -78,7 +78,7 @@ fluxo_seguranca = [
     {
         "acao": "Preencher e assinar os requisitos de liberação da Permissão de Entrada e Trabalho (PET)",
         "quem_correto": "Supervisor",
-        "o_que_correto": "Sinalizacao",
+        "o_que_correto": "PET",
         "motivo": "A emissão, preenchimento físico e assinatura de autorização da PET competem unicamente ao Supervisor."
     },
     {
@@ -202,7 +202,7 @@ with col_direita:
                     st.session_state.erro_procedimento = True
             st.rerun()
 
-        # Renderização dos Profissionais (Exibição estática livre de mutações JS que quebram o React)
+        # Renderização dos Profissionais
         st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -218,19 +218,23 @@ with col_direita:
             exibir_imagem_repositorio("Resgate1.png", "Resgate")
             if st.button("Selecionar Resgate", key="b_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
 
-        # Renderização dos Equipamentos e Dispositivos
-        st.markdown("#### 🔒 2. Isolamento, Bloqueio e Sistemas (O que utiliza?)")
-        l1, l2, l3, l4 = st.columns(4)
+        # Renderização dos Equipamentos, Controles e Documentos
+        st.markdown("#### 🔒 2. Isolamento, Bloqueio e Documentação (O que utiliza?)")
+        l1, l2, l3, l4, l5 = st.columns(5)
         with l1:
             exibir_imagem_repositorio("Isolamento.png", "Isolamento")
-            if st.button("Acionar Isolamento Área", key="b_iso", use_container_width=True): avaliar_dupla("o_que", "Isolamento")
+            if st.button("Isolamento Área", key="b_iso", use_container_width=True): avaliar_dupla("o_que", "Isolamento")
         with l2:
             exibir_imagem_repositorio("Cadeado.png", "LOTO")
-            if st.button("Acionar Cadeado / LOTO", key="b_loto", use_container_width=True): avaliar_dupla("o_que", "LOTO")
+            if st.button("Cadeado / LOTO", key="b_loto", use_container_width=True): avaliar_dupla("o_que", "LOTO")
         with l3:
             exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalizacao")
-            if st.button("Sinalização LOTO / PET", key="b_sin", use_container_width=True): avaliar_dupla("o_que", "Sinalizacao")
+            if st.button("Sinalização LOTO", key="b_sin", use_container_width=True): avaliar_dupla("o_que", "Sinalizacao")
         with l4:
+            # NOVO ELEMENTO EXCLUSIVO: Exibe a imagem PET.png carregada no repositório
+            exibir_imagem_repositorio("PET.png", "PET")
+            if st.button("Emitir / Assinar PET", key="b_pet", use_container_width=True): avaliar_dupla("o_que", "PET")
+        with l5:
             exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Teste Resposta")
             if st.button("Acionar Bump Test", key="b_bt", use_container_width=True): avaliar_dupla("o_que", "Teste Resposta")
 
