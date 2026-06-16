@@ -54,7 +54,7 @@ fluxo_seguranca = [
     {
         "acao": "Fixar as etiquetas de aviso nos pontos de bloqueio para alertar que o equipamento está impedido",
         "quem_correto": "Supervisor",
-        "o_que_correto": "Sinalização",
+        "o_que_correto": "Sinalizacao",
         "motivo": "A sinalização do LOTO formaliza o travamento e deve ser fixada sob a coordenação do Supervisor de Entrada."
     },
     {
@@ -66,11 +66,11 @@ fluxo_seguranca = [
     {
         "acao": "Ligar o conjunto mecânico para injetar ar limpo ou exaurir os gases estagnados no fundo do espaço confinado",
         "quem_correto": "Supervisor",
-        "o_que_correto": "Ventilação",
+        "o_que_correto": "Ventilacao",
         "motivo": "O Supervisor determina e monitora o início da ventilação mecânica prévia para purga de gases e contaminantes."
     },
     {
-        "acao": "Introduzir a sonda do detector para efetuar a leitura dos gases (O2, LEL, CO, H2S) em múltiplos níveis",
+        "acao": "Introduzir a sonda do detector para efetuar a leitura dos gases (O2, LEL, CO, H2S) in múltiplos níveis",
         "quem_correto": "Supervisor",
         "o_que_correto": "Detector",
         "motivo": "A avaliação atmosférica eletrônica inicial é um dever legal exclusivo e obrigatório do Supervisor de Entrada."
@@ -78,19 +78,19 @@ fluxo_seguranca = [
     {
         "acao": "Preencher e assinar os requisitos de liberação da Permissão de Entrada e Trabalho (PET)",
         "quem_correto": "Supervisor",
-        "o_que_correto": "Sinalização",  # Usando o botão de documento/sinalização para a PET
+        "o_que_correto": "Sinalizacao",
         "motivo": "A emissão, preenchimento físico e assinatura de autorização da PET competem unicamente ao Supervisor."
     },
     {
         "acao": "Montar a estrutura metálica de ancoragem e o guincho mecânico sobre o acesso do espaço confinado",
         "quem_correto": "Resgate",
-        "o_que_correto": "Tripé",
+        "o_que_correto": "Tripe",
         "motivo": "A equipe de resposta/salvamento monta o tripé preventivamente para garantir a retenção de queda e o sistema de resgate vertical."
     },
     {
         "acao": "Equipar o cinto de segurança e descer pelo acesso para iniciar a realização da atividade prática interna",
         "quem_correto": "Entrante",
-        "o_que_correto": "Isolamento",  # Entrada física na zona isolada
+        "o_que_correto": "Isolamento",
         "motivo": "O entrante (trabalhador autorizado) acessa o interior de risco para executar a tarefa industrial."
     },
     {
@@ -102,13 +102,13 @@ fluxo_seguranca = [
     {
         "acao": "Permanecer do lado de fora em vigilância constante e comunicação contínua com os trabalhadores",
         "quem_correto": "Vigia",
-        "o_que_correto": "Sinalização",  # Comunicação/Monitoramento do posto externo
+        "o_que_correto": "Sinalizacao",
         "motivo": "O Vigia atua unicamente na área externa mantendo o posto de controle visual e rádio com a equipe interna."
     },
     {
         "acao": "Iniciar o resgate emergencial vertical operando os sistemas mecânicos de içamento após um sinistro",
         "quem_correto": "Resgate",
-        "o_que_correto": "Tripé",
+        "o_que_correto": "Tripe",
         "motivo": "O salvamento técnico e a operação do guincho do tripé para extração rápida de vítimas competem à equipe de resgate."
     }
 ]
@@ -178,87 +178,73 @@ with col_direita:
         st.markdown("### 🎯 Próxima Ação Obrigatória:")
         st.warning(f"👉 **{passo_atual['acao']}**")
         
-        # --- SISTEMA DE INSTRUÇÃO DINÂMICA (DUPLA VALIDAÇÃO) ---
+        # --- SISTEMA DE INSTRUÇÃO DINÂMICA (DUPLA VALIDAÇÃO ESTÁVEL) ---
         if st.session_state.responsavel_selecionado is None:
-            st.markdown("#### 🟥 **PASSO 1:** Clique primeiro no **Responsável** pela tarefa abaixo:")
+            st.markdown("#### 🟥 **PASSO 1:** Clique primeiro no botão do **Responsável** pela tarefa:")
         else:
-            st.markdown(f"#### 🟨 **PASSO 2:** Responsável selecionado: `{st.session_state.responsavel_selecionado}`. Agora clique no **Equipamento, Dispositivo ou Documento** correspondente:")
+            st.markdown(f"#### 🟨 **PASSO 2:** Responsável definido: **[{st.session_state.responsavel_selecionado}]**. Agora clique no botão do **Equipamento/Ação**:")
 
-        # Funções de clique para processar a lógica em dois tempos
-        def clicar_quem(quem):
-            if quem == passo_atual["quem_correto"]:
-                st.session_state.responsavel_selecionado = quem
-            else:
-                st.session_state.erro_procedimento = True
+        def avaliar_dupla(tipo_clique, valor):
+            if tipo_clique == "quem":
+                if valor == passo_atual["quem_correto"]:
+                    st.session_state.responsavel_selecionado = valor
+                else:
+                    st.session_state.erro_procedimento = True
+            elif tipo_clique == "o_que":
+                if st.session_state.responsavel_selecionado is None:
+                    st.warning("⚠️ Selecione primeiro o integrante da equipe (Passo 1) antes do dispositivo!")
+                    return
+                if valor == passo_atual["o_que_correto"]:
+                    st.session_state.historico_acoes.append(f"🟩 Concluído: {passo_atual['acao']} -> [{passo_atual['quem_correto']}] + [{passo_atual['o_que_correto']}]")
+                    st.session_state.etapa_atual += 1
+                    st.session_state.responsavel_selecionado = None
+                else:
+                    st.session_state.erro_procedimento = True
             st.rerun()
 
-        def clicar_o_que(o_que):
-            if st.session_state.responsavel_selecionado is None:
-                st.warning("⚠️ Violação de Procedimento! Você deve escolher o profissional responsável antes de acionar o dispositivo.")
-            elif o_que == passo_atual["o_que_correto"]:
-                st.session_state.historico_acoes.append(f"🟩 Concluído: {passo_atual['acao']} -> Executado por: [{passo_atual['quem_correto']}] com: [{passo_atual['o_que_correto']}]")
-                st.session_state.etapa_atual += 1
-                st.session_state.responsavel_selecionado = None
-            else:
-                st.session_state.erro_procedimento = True
-            st.rerun()
-
-        # Renderização dos Profissionais
-        st.markdown("---")
-        st.markdown("#### 👥 Integrantes da Equipe (Quem faz?)")
+        # Renderização dos Profissionais (Exibição estática livre de mutações JS que quebram o React)
+        st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
         c1, c2, c3, c4 = st.columns(4)
-        
-        # Estilização visual se o profissional já foi selecionado para prender a atenção do aluno
-        sup_label = "👉 Supervisor" if st.session_state.responsavel_selecionado == "Supervisor" else "Supervisor"
-        ent_label = "👉 Entrante" if st.session_state.responsavel_selecionado == "Entrante" else "Entrante"
-        vig_label = "👉 Vigia" if st.session_state.responsavel_selecionado == "Vigia" else "Vigia"
-        res_label = "👉 Equipe Resgate" if st.session_state.responsavel_selecionado == "Resgate" else "Equipe Resgate"
-
         with c1:
             exibir_imagem_repositorio("Supervisor.png", "Supervisor")
-            if st.button(sup_label, key="b_sup", use_container_width=True, disabled=(st.session_state.responsavel_selecionado is not None)): 
-                clicar_quem("Supervisor")
+            if st.button("Selecionar Supervisor", key="b_sup", use_container_width=True): avaliar_dupla("quem", "Supervisor")
         with c2:
             exibir_imagem_repositorio("Entrante.png", "Entrante")
-            if st.button(ent_label, key="b_ent", use_container_width=True, disabled=(st.session_state.responsavel_selecionado is not None)): 
-                clicar_quem("Entrante")
+            if st.button("Selecionar Entrante", key="b_ent", use_container_width=True): avaliar_dupla("quem", "Entrante")
         with c3:
             exibir_imagem_repositorio("Vigia.png", "Vigia")
-            if st.button(vig_label, key="b_vig", use_container_width=True, disabled=(st.session_state.responsavel_selecionado is not None)): 
-                clicar_quem("Vigia")
+            if st.button("Selecionar Vigia", key="b_vig", use_container_width=True): avaliar_dupla("quem", "Vigia")
         with c4:
             exibir_imagem_repositorio("Resgate1.png", "Resgate")
-            if st.button(res_label, key="b_res", use_container_width=True, disabled=(st.session_state.responsavel_selecionado is not None)): 
-                clicar_quem("Resgate")
+            if st.button("Selecionar Resgate", key="b_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
 
         # Renderização dos Equipamentos e Dispositivos
-        st.markdown("---")
-        st.markdown("#### 🔒 Isolamento e Bloqueio (LOTO)")
+        st.markdown("#### 🔒 2. Isolamento, Bloqueio e Sistemas (O que utiliza?)")
         l1, l2, l3, l4 = st.columns(4)
         with l1:
             exibir_imagem_repositorio("Isolamento.png", "Isolamento")
-            if st.button("Isolamento Área", key="b_iso", use_container_width=True): clicar_o_que("Isolamento")
+            if st.button("Acionar Isolamento Área", key="b_iso", use_container_width=True): avaliar_dupla("o_que", "Isolamento")
         with l2:
             exibir_imagem_repositorio("Cadeado.png", "LOTO")
-            if st.button("Bloqueios / LOTO", key="b_loto", use_container_width=True): clicar_o_que("LOTO")
+            if st.button("Acionar Cadeado / LOTO", key="b_loto", use_container_width=True): avaliar_dupla("o_que", "LOTO")
         with l3:
             exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalizacao")
-            if st.button("Sinalizacao LOTO / PET", key="b_sin", use_container_width=True): clicar_o_que("Sinalizacao")
+            if st.button("Sinalização LOTO / PET", key="b_sin", use_container_width=True): avaliar_dupla("o_que", "Sinalizacao")
         with l4:
             exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Teste Resposta")
-            if st.button("Bump Test", key="b_bt", use_container_width=True): clicar_o_que("Teste Resposta")
+            if st.button("Acionar Bump Test", key="b_bt", use_container_width=True): avaliar_dupla("o_que", "Teste Resposta")
 
         st.markdown("#### ⚙️ Sistemas Atmosféricos e Coletivos")
         e1, e2, e3 = st.columns(3)
         with e1:
             exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilacao")
-            if st.button("Ventilacao/Purga", key="b_vent", use_container_width=True): clicar_o_que("Ventilacao")
+            if st.button("Acionar Ventilação/Purga", key="b_vent", use_container_width=True): avaliar_dupla("o_que", "Ventilacao")
         with e2:
             exibir_imagem_repositorio("DetectorGas.png", "Detector")
-            if st.button("Medicao Gases", key="b_det", use_container_width=True): clicar_o_que("Detector")
+            if st.button("Acionar Medição Gases", key="b_det", use_container_width=True): avaliar_dupla("o_que", "Detector")
         with e3:
             exibir_imagem_repositorio("Tripe.png", "Tripe")
-            if st.button("Tripe / Resgate", key="b_tri", use_container_width=True): clicar_o_que("Tripé")
+            if st.button("Acionar Tripé / Linha Vida", key="b_tri", use_container_width=True): avaliar_dupla("o_que", "Tripe")
 
     if st.session_state.historico_acoes:
         st.markdown("---")
