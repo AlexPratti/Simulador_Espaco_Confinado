@@ -4,20 +4,13 @@ import os
 # Configuração da página para aproveitar o espaço horizontal
 st.set_page_config(page_title="Portal de Simuladores SST", page_icon="🛡️", layout="wide")
 
-# --- NAVEGAÇÃO PRINCIPAL ENTRE AS TRÊS ABAS DO SEU PORTAL ---
+# --- NAVEGAÇÃO PRINCIPAL EM ABAS HORIZONTAIS ---
 st.markdown("## 🧭 Escolha o Módulo de Treinamento")
-aba_ativa = st.radio(
+modulo = st.radio(
     "Selecione a área operacional para simular os procedimentos:", 
     ["Aba Inicial", "NR-33 (Espaço Confinado)", "NR-35 (Trabalho em Altura)"],
     horizontal=True
 )
-
-# --- MAPEAMENTO DE CHAVES TÉCNICAS INTERNAS ---
-aba_active_id = "inicial"
-if aba_ativa == "NR-33 (Espaço Confinado)":
-    aba_active_id = "nr33"
-elif aba_ativa == "NR-35 (Trabalho em Altura)":
-    aba_active_id = "nr35"
 
 # --- CONTROLE GLOBAL DE ESTADOS (SESSION STATE) ---
 if "etapa_atual" not in st.session_state:
@@ -34,6 +27,8 @@ if "historico_acoes" not in st.session_state:
     st.session_state.historico_acoes = []
 if "responsavel_selecionado" not in st.session_state:
     st.session_state.responsavel_selecionado = None
+if "bloqueio_calculo_altura" not in st.session_state:
+    st.session_state.bloqueio_calculo_altura = False
 
 # Função unificada de reinício da simulação
 def resetar_jogo():
@@ -42,7 +37,7 @@ def resetar_jogo():
     st.session_state.total_erros = 0
     st.session_state.historico_acoes = []
     st.session_state.responsavel_selecionado = None
-
+    st.session_state.bloqueio_calculo_altura = False
 # Função automatizada com Fallback Visual para Caixas de Imagens Faltantes
 def exibir_imagem_repositorio(nome_arquivo, fallback_texto):
     if os.path.exists(nome_arquivo):
@@ -81,7 +76,6 @@ servicos_nr35 = [
     "Pintura Externa de Silo Elevado [2 Trabalhadores no topo | Exige 1 Vigia em solo por área pública externa]"
 ]
 
-# Relação completa e unificada de sinistros e traumas de saúde
 acidentes_disponiveis = [
     "Mal Súbito por Asfixia (Falta de Oxigênio)",
     "Intoxicação por Gases com Perda de Consciência",
@@ -156,7 +150,7 @@ def obter_fluxo_nr35():
         {"acao": "Elaborar e validar a Análise Preliminar de Risco (APR) listando os perigos da atividade em altura", "quem_correto": "Supervisor", "o_que_correto": "APR", "motivo": "O Supervisor deve garantir que a análise de risco e os recursos de segurança estejam corretos antes da subida."},
         {"acao": "Isolar fisicamente a área de solo correspondente à projeção de queda de materiais", "quem_correto": "Supervisor", "o_que_correto": "Isolamento", "motivo": "Cabe ao Supervisor assegurar o isolamento de periferia na base da estrutura."},
         {"acao": "Emitir formalmente a assinatura de liberação da Permissão de Trabalho (PT) em altura", "quem_correto": "Supervisor", "o_que_correto": "PET", "motivo": "A auditoria técnica final e assinatura de liberação da PT competem ao Supervisor."},
-        {"acao": "Ajustar os cintos de segurança paraquedistas de todos os envolvidos e checar as fivelas", "quem_correto": "Entrante", "o_que_correto": "EPI", "motivo": "Os executantes devem realizar a inspeção e ajuste do próprio cinto em dupla antes de iniciar."},
+        {"acao": "Ajustar os cintos de segurança paraquedistas de todos os envolvidos e checar as fivelas", "quem_correto": "Entrante", "o_que_correto": "EPI", "motivo": "Os executantes devem realizar a inspection e ajuste do próprio cinto em dupla antes de iniciar."},
         {"acao": "Conectar o gancho do Talabarte duplo em Y ou o dispositivo Trava-quedas na linha de vida estrutural", "quem_correto": "Entrante", "o_que_correto": "Talabarte_Y" if "Arnês" in acidente else "TravaQuedas", "motivo": "O trabalhador deve se ancorar fixamente à linha de vida antes de iniciar os trabalhos técnicos."},
         {"acao": "Iniciar a subida e executar a atividade técnica no topo da estrutura conforme o quantitativo da OS", "quem_correto": "Entrante", "o_que_correto": "Ventilacao", "motivo": "Após a liberação e ancoragem, a equipe técnica inicia a execução dos serviços em altura."},
         {"acao": "Garantir o monitoramento constante das condições de risco e manter a prontidão do rádio HT. (Quem monitora nesta OS?)", "quem_correto": monitor_externo, "o_que_correto": "Comunicacao", "motivo": f"Conforme definido na APR para esta atividade específica, o monitoramento é feito pelo [{texto_monitor}]."},
@@ -164,12 +158,13 @@ def obter_fluxo_nr35():
         {"acao": "Mobilizar a brigada, acessar o trabalhador suspenso por cordas e operar o sistema mecânico de descida vertical", "quem_correto": "Resgate", "o_que_correto": "Tripe", "motivo": "Em caso de sinistro na altura, a Equipe de Resgate assume a operação técnica de polias e descida tática da vítima."},
         {"acao": "Estabilizar a cervical e realizar a imobilização completa do acidentado no solo antes do transporte técnico", "quem_correto": "Resgate", "o_que_correto": "MacaRigida" if "Coluna" in acidente else item_medico_requerido, "motivo": "O time de resgate presta os primeiros socorros imobilizando o trauma no solo conforme o diagnóstico do acidente."}
     ]
-
-# --- RENDERIZAÇÃO DO CONTEXTO DE LAYOUT ---
+# --- CONSTRUÇÃO DO LAYOUT EM DUAS COLUNAS ---
 col_esquerda, col_direita = st.columns([1.1, 1.3], gap="large")
 
 with col_esquerda:
-    # SELEÇÃO DINÂMICA DA IMAGEM DO CENÁRIO ATIVO NO TOPO
+    st.header("📸 Análise de Cenário")
+    
+    # 1. Fluxo Visual Exclusivo se a Aba selecionada for NR-33
     if modulo == "NR-33 (Espaço Confinado)":
         if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_33:
             st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
@@ -187,23 +182,20 @@ with col_esquerda:
         st.selectbox("2. Escolha o sinistro potencial:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_33")
         st.session_state.acidente_selecionado = st.session_state.sel_a_33
 
-    elif modulo == "NR-35 (Trabalho em Altura)":
-        if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_35:
-            st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
-            exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_35[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
-        else:
-            st.markdown("### 📍 Cenário Operacional (Trabalho em Altura)")
-            exibir_imagem_repositorio("Altura_Andaimes.png", "Cenário de Altura Padrão")
-
-        st.markdown("---")
-        st.header("🛠️ Configuração da Ordem de Serviço")
+    # 2. Fluxo Visual Exclusivo se a Aba selecionada for NR-35
+    if modulo == "NR-35 (Trabalho em Altura)":
         st.selectbox("1. Escolha a atividade industrial em altura:", servicos_nr35, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_s_35")
         st.session_state.servico_selecionado = st.session_state.sel_s_35
         st.selectbox("2. Escolha o risco à saúde associado:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_35")
         st.session_state.acidente_selecionado = st.session_state.sel_a_35
-
-        # --- BLOCO EXCLUSIVO DE ENGENHARIA DE QUEDA (NR-35) ---
         if st.session_state.servico_selecionado:
+            if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_35:
+                st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
+                exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_35[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
+            else:
+                st.markdown("### 📍 Cenário Operacional (Trabalho em Altura)")
+                exibir_imagem_repositorio("Altura_Andaimes.png", "Cenário de Altura Padrão")
+            
             st.markdown("### 📐 Painel de Engenharia de Queda (NR-35)")
             h_cenario = st.number_input("Altura total do cenário (metros):", min_value=1.0, max_value=50.0, value=4.0, step=0.5)
             dist_topo_anc = st.number_input("Distância do topo do cenário até o ponto de ancoragem (metros):", min_value=0.0, max_value=10.0, value=1.5, step=0.1)
@@ -396,7 +388,7 @@ with col_direita:
                         exibir_imagem_repositorio("Maca_Sked.png", "Maca Sked")
                         if st.button("Maca Sked Envelope", key="f_m3", use_container_width=True): avaliar_dupla("o_que", "MacaSked")
                     with f4:
-                        exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")                
+                        exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")
                     if st.button("Talas e Ataduras", key="f_m4", use_container_width=True): 
                         avaliar_dupla("o_que", "Talas")
 
