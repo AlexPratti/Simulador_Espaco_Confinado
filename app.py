@@ -4,35 +4,43 @@ import os
 # Configuração da página para aproveitar o espaço horizontal
 st.set_page_config(page_title="Portal de Simuladores SST", page_icon="🛡️", layout="wide")
 
-# --- NAVEGAÇÃO PRINCIPAL ENTRE NORMAS ---
-st.sidebar.header("🧭 Módulo de Treinamento")
-modulo = st.sidebar.radio("Selecione a Norma Regulamentadora:", ["NR-33 (Espaço Confinado)", "NR-35 (Trabalho em Altura)"])
+# --- CONTROLE DE ESTADOS (SESSION STATE MULTI-ABA) ---
+if "etapa_atual_33" not in st.session_state:
+    st.session_state.etapa_atual_33 = 0
+if "etapa_atual_35" not in st.session_state:
+    st.session_state.etapa_atual_35 = 0
+if "erro_33" not in st.session_state:
+    st.session_state.erro_33 = False
+if "erro_35" not in st.session_state:
+    st.session_state.erro_35 = False
+if "erros_acumulados_33" not in st.session_state:
+    st.session_state.erros_acumulados_33 = 0
+if "erros_acumulados_35" not in st.session_state:
+    st.session_state.erros_acumulados_35 = 0
+if "hist_33" not in st.session_state:
+    st.session_state.hist_33 = []
+if "hist_35" not in st.session_state:
+    st.session_state.hist_35 = []
+if "resp_33" not in st.session_state:
+    st.session_state.resp_33 = None
+if "resp_35" not in st.session_state:
+    st.session_state.resp_35 = None
 
-# --- CONTROLE DE ESTADOS (SESSION STATE) ---
-if "etapa_atual" not in st.session_state:
-    st.session_state.etapa_atual = 0
-if "erro_procedimento" not in st.session_state:
-    st.session_state.erro_procedimento = False
-if "total_erros" not in st.session_state:
-    st.session_state.total_erros = 0
-if "servico_selecionado" not in st.session_state:
-    st.session_state.servico_selecionado = None
-if "acidente_selecionado" not in st.session_state:
-    st.session_state.acidente_selecionado = None
-if "historico_acoes" not in st.session_state:
-    st.session_state.historico_acoes = []
-if "responsavel_selecionado" not in st.session_state:
-    st.session_state.responsavel_selecionado = None
+def resetar_33():
+    st.session_state.etapa_atual_33 = 0
+    st.session_state.erro_33 = False
+    st.session_state.erros_acumulados_33 = 0
+    st.session_state.hist_33 = []
+    st.session_state.resp_33 = None
 
-# Função unificada de reinício
-def resetar_jogo():
-    st.session_state.etapa_atual = 0
-    st.session_state.erro_procedimento = False
-    st.session_state.total_erros = 0
-    st.session_state.historico_acoes = []
-    st.session_state.responsavel_selecionado = None
+def resetar_35():
+    st.session_state.etapa_atual_35 = 0
+    st.session_state.erro_35 = False
+    st.session_state.erros_acumulados_35 = 0
+    st.session_state.hist_35 = []
+    st.session_state.resp_35 = None
 
-# Função automatizada com Fallback Visual para Caixas de Imagens Faltantes
+# Função com Fallback Visual se a imagem não existir
 def exibir_imagem_repositorio(nome_arquivo, fallback_texto):
     if os.path.exists(nome_arquivo):
         st.image(nome_arquivo, use_container_width=True)
@@ -49,7 +57,7 @@ def exibir_imagem_repositorio(nome_arquivo, fallback_texto):
             unsafe_allow_html=True
         )
 
-# --- LISTAGENS GERAIS ---
+# --- LISTAGENS ---
 servicos_nr33 = [
     "Limpeza Química de Tanque de Combustível",
     "Manutenção de Válvulas em Galeria Subterrânea",
@@ -64,20 +72,18 @@ servicos_nr33 = [
 ]
 
 servicos_nr35 = [
-    "Montagem de Fachada [2 Trabalhadores no topo | Sem Vigia exclusivo]",
-    "Reparo de Telhado [3 Trabalhadores no topo | Sem Vigia exclusivo]",
-    "Troca de Lâmpadas em Poste [1 Trabalhador no topo | Exige 1 Vigia em solo por tráfego de veículos]",
-    "Pintura Externa de Silo Elevado [2 Trabalhadores no topo | Exige 1 Vigia em solo por área pública externa]"
+    "Reparo de Telhado Industrial [3 Trabalhadores no topo | Sem Vigia exclusivo]",
+    "Montagem de Fachada de Prédio [2 Trabalhadores no topo | Sem Vigia exclusivo]",
+    "Substituição de Luminárias em Linha de Poste [1 Trabalhador no topo | Exige 1 Vigia em solo]"
 ]
 
-acidentes_nr33 = [
+acidentes_disponiveis = [
     "Mal Súbito por Asfixia (Falta de Oxigênio)",
-    "Intoxicação por Gases com Perda de Consciência"
-]
-
-acidentes_nr35 = [
-    "Queda com Suspensão Inerte (Síndrome do Arnês)",
-    "Queda de Altura com Suspensão e Fratura Exposta no Fêmur"
+    "Intoxicação por Gases com Perda de Consciência",
+    "Queda de Altura com Fratura Exposta no Fêmur",
+    "Prensamento de Membro com Hemorragia Grave",
+    "Queimadura Química por Contato Respiratório",
+    "Choque Elétrico por Equipamento Não Aterrado"
 ]
 MAPEAMENTO_CENARIOS_33 = {
     "Limpeza Química de Tanque de Combustível": "Tanque_Combustivel.png",
@@ -93,235 +99,231 @@ MAPEAMENTO_CENARIOS_33 = {
 }
 
 MAPEAMENTO_CENARIOS_35 = {
-    "Montagem de Fachada [2 Trabalhadores no topo | Sem Vigia exclusivo]": "Altura_Andaimes.png",
-    "Reparo de Telhado [3 Trabalhadores no topo | Sem Vigia exclusivo]": "Altura_Telhado.png",
-    "Troca de Lâmpadas em Poste [1 Trabalhador no topo | Exige 1 Vigia em solo por tráfego de veículos]": "Altura_Poste.png",
-    "Pintura Externa de Silo Elevado [2 Trabalhadores no topo | Exige 1 Vigia em solo por área pública externa]": "Altura_Poste.png"
+    "Reparo de Telhado Industrial [3 Trabalhadores no topo | Sem Vigia exclusivo]": "Altura_Telhado.png",
+    "Montagem de Fachada de Prédio [2 Trabalhadores no topo | Sem Vigia exclusivo]": "Altura_Andaimes.png",
+    "Substituição de Luminárias em Linha de Poste [1 Trabalhador no topo | Exige 1 Vigia em solo]": "Altura_Poste.png"
 }
 
-# Geração dinâmica dos fluxos regulamentares
-def obter_fluxo_nr33():
-    acidente = st.session_state.acidente_selecionado or "Incidente"
-    return [
-        {"acao": "Instalar a barreira física de pedestais e correntes para delimitar a área de risco", "quem_correto": "Supervisor", "o_que_correto": "Isolamento", "motivo": "O Supervisor deve garantir o isolamento externo antes de abrir o acesso."},
-        {"acao": "Instalar garras, cadeados e travas nos disjuntores e válvulas de alimentação", "quem_correto": "Supervisor", "o_que_correto": "LOTO", "motivo": "O bloqueio mecânico (LOTO) e elétrico é gerenciado e inspecionado pelo Supervisor."},
-        {"acao": "Fixar as etiquetas de aviso nos pontos de bloqueio para alertar o impedimento", "quem_correto": "Supervisor", "o_que_correto": "Sinalizacao", "motivo": "A sinalização do LOTO formaliza o travamento sob coordenação do Supervisor."},
-        {"acao": "Realizar o teste de resposta (bump test) do detector acoplando-o ao cilindro de gás", "quem_correto": "Supervisor", "o_que_correto": "Teste Resposta", "motivo": "O Supervisor deve certificar o detector de gases antes do uso em campo."},
-        {"acao": "Ligar o conjunto mecânico para injetar ar limpo ou exaurir os gases estagnados no fundo", "quem_correto": "Supervisor", "o_que_correto": "Ventilacao", "motivo": "O Supervisor determina e monitora o início da ventilação mecânica prévia."},
-        {"acao": "Introduzir a sonda do detector para efectivar a leitura dos gases em múltiplos níveis", "quem_correto": "Supervisor", "o_que_correto": "Detector", "motivo": "A avaliação atmosférica eletrônica inicial é um dever legal obrigatório do Supervisor."},
-        {"acao": "Preencher e assinar os requisitos de liberação da Permissão de Entrada e Trabalho (PET)", "quem_correto": "Supervisor", "o_que_correto": "PET", "motivo": "A liberação formal por escrito por meio da PET compete unicamente ao Supervisor."},
-        {"acao": "Montar e preparar a estrutura de ancoragem e o sistema de vantagem mecânica sobre o acesso", "quem_correto": "Vigia", "o_que_correto": "Tripe", "motivo": "Na fase preparatória preventiva, cabe ao Vigia estruturar os sistemas de movimentação externos."},
-        {"acao": "Equipar o cinto de segurança e descer pelo acesso para iniciar a atividade prática interna", "quem_correto": "Entrante", "o_que_correto": "EPI", "motivo": "O entrante acessa o interior portando o cinto conectado com segurança à linha de vida."},
-        {"acao": "Monitorar continuamente a atmosfera interna carregando o detector portátil junto a si", "quem_correto": "Entrante", "o_que_correto": "Detector", "motivo": "O entrante deve portar o detector no interior para captar variações súbitas de gases."},
-        {"acao": "Permanecer do lado de fora em vigilância constante externa e comunicação contínua", "quem_correto": "Vigia", "o_que_correto": "LadoFora", "motivo": "O Vigia atua mantendo obrigatoriamente o seu posto de controle fixo do lado de fora da área de risco."},
-        {"acao": f"ATENÇÃO! OCORREU UM SINISTRO INTERNO: [{acidente}]. Mobilize a equipe e acione o recurso médico/salvamento correto para o resgate do entrante", "quem_correto": "Resgate", "o_que_correto": "Respirador" if "Asfixia" in acidente or "Gases" in acidente else "Talas", "motivo": "Na emergência, a Equipe de Resgate assume o salvamento portando o EPI respiratório ou de primeiros socorros adequado."}
-    ]
+# --- CRIAÇÃO DAS ABAS NA INTERFACE SUPERIOR ---
+tab_nr33, tab_nr35 = st.tabs(["⚠️ Módulo NR-33 (Espaço Confinado)", "🧗 Módulo NR-35 (Trabalho em Altura)"])
 
-def obter_fluxo_nr35():
-    acidente = st.session_state.acidente_selecionado or "Incidente"
-    servico = st.session_state.servico_selecionado or ""
-    precisa_vigia = "Exige" in servico
-    monitor_externo = "Vigia" if precisa_vigia else "Entrante"
-    texto_monitor = "Vigia em solo" if precisa_vigia else "Trabalhador parceiro de equipe no topo"
-
-    return [
-        {"acao": "Elaborar e validar a Análise Preliminar de Risco (APR) listando os perigos da atividade em altura", "quem_correto": "Supervisor", "o_que_correto": "APR", "motivo": "O Supervisor deve garantir que a análise de risco e os recursos de segurança estejam corretos antes da subida."},
-        {"acao": "Isolar fisicamente a área de solo correspondente à projeção de queda de materiais", "quem_correto": "Supervisor", "o_que_correto": "Isolamento", "motivo": "Cabe ao Supervisor assegurar o isolamento de periferia na base da estrutura."},
-        {"acao": "Emitir formalmente a assinatura de liberação da Permissão de Trabalho (PT) em altura", "quem_correto": "Supervisor", "o_que_correto": "PET", "motivo": "A auditoria técnica final e assinatura de liberação da PT competem ao Supervisor."},
-        {"acao": "Ajustar os cintos de segurança paraquedistas de todos os envolvidos e checar as fivelas", "quem_correto": "Entrante", "o_que_correto": "EPI", "motivo": "Os executantes devem realizar a inspeção e ajuste do próprio cinto em dupla antes de iniciar."},
-        {"acao": "Conectar o gancho do Talabarte duplo em Y ou o dispositivo Trava-quedas na linha de vida estrutural", "quem_correto": "Entrante", "o_que_correto": "Talabarte_Y" if "Arnês" in acidente else "TravaQuedas", "motivo": "O trabalhador deve se ancorar fixamente à linha de vida antes de iniciar os trabalhos técnicos."},
-        {"acao": "Iniciar a subida e executar a atividade técnica no topo da estrutura conforme o quantitativo da OS", "quem_correto": "Entrante", "o_que_correto": "Ventilacao", "motivo": "Após a liberação e ancoragem, a equipe técnica inicia a execução dos serviços em altura."},
-        {"acao": "Garantir o monitoramento constante das condições de risco e manter a prontidão do rádio HT. (Quem monitora nesta OS?)", "quem_correto": monitor_externo, "o_que_correto": "Comunicacao", "motivo": f"Conforme definido na APR para esta atividade específica, o monitoramento é feito pelo [{texto_monitor}]."},
-        {"acao": f"ALERTA! OCORREU UMA QUEDA COM SUSPENSÃO: [{acidente}]. Lance imediatamente o recurso de alívio circulatório contra a Síndrome do Arnês", "quem_correto": monitor_externo, "o_que_correto": "Fita_AntiTrauma", "motivo": "O encarregado do monitoramento deve agir rápido para prover a fita de suspensão e evitar o choque circulatório."},
-        {"acao": "Mobilizar a brigada, acessar o trabalhador suspenso por cordas e operar o sistema mecânico de descida vertical", "quem_correto": "Resgate", "o_que_correto": "Tripe", "motivo": "Em caso de sinistro na altura, a Equipe de Resgate assume a operação técnica de polias e descida tática da vítima."},
-        {"acao": "Estabilizar a cervical e realizar a imobilização completa do acidentado no solo antes do transporte técnico", "quem_correto": "Resgate", "o_que_correto": "MacaRigida" if "Coluna" in acidente else "Talas", "motivo": "O time de resgate presta os primeiros socorros imobilizando o trauma no solo conforme o diagnóstico do acidente."}
-    ]
-# --- RENDERIZAÇÃO DO CONTEXTO DE LAYOUT ---
-col_esquerda, col_direita = st.columns([1.1, 1.3], gap="large")
-
-with col_esquerda:
-    st.header("📸 Cenário Operacional")
+# =========================================================================
+#                    A B A   N R - 3 3   (ESPAÇO CONFINADO)
+# =========================================================================
+with tab_nr33:
+    st.title("🛡️ Simulador Prático NR-33")
+    col_esq_33, col_dir_33 = st.columns([1.1, 1.3], gap="large")
     
-    if modulo == "NR-33 (Espaço Confinado)":
-        if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_33:
-            exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_33[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
-        else:
-            tab_f1, tab_t1 = st.tabs(["👁️ Frente", "👁️ Topo"])
-            with tab_f1: exibir_imagem_repositorio("Esp.Confinado.Frente.png", "Esp.Confinado.Frente.png")
-            with tab_t1: exibir_imagem_repositorio("Esp.Confinado.Topo.png", "Esp.Confinado.Topo.png")
-    else:
-        if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_35:
-            exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_35[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
-        else:
-            exibir_imagem_repositorio("Altura_Andaimes.png", "Cenário de Altura Padrão")
-
-    st.markdown("---")
-    st.header("🛠️ Configuração da Ordem de Serviço")
-    
-    lista_servicos = servicos_nr33 if modulo == "NR-33 (Espaço Confinado)" else servicos_nr35
-    lista_acidentes = acidentes_nr33 if modulo == "NR-33 (Espaço Confinado)" else acidentes_nr35
-    
-    st.selectbox("1. Escolha a atividade industrial:", lista_servicos, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_s")
-    st.session_state.servico_selecionado = st.session_state.sel_s
-    
-    st.selectbox("2. Escolha o sinistro potencial:", lista_acidentes, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a")
-    st.session_state.acidente_selecionado = st.session_state.sel_a
-
-with col_direita:
-    st.header("🕹️ Painel de Decisões Técnicas")
-    
-    if not st.session_state.servico_selecionado or not st.session_state.acidente_selecionado:
-        st.info("Selecione os parâmetros da Ordem de Serviço e Risco à esquerda para liberar o painel da norma.")
-    else:
-        fluxo_seguranca = obter_fluxo_nr33() if modulo == "NR-33 (Espaço Confinado)" else obter_fluxo_nr35()
-        st.metric(label="⚠️ Desvios / Erros Cometidos na Missão", value=st.session_state.total_erros)
+    with col_esq_33:
+        st.header("📸 Análise do Ambiente")
+        st.selectbox("1. Selecione a Atividade Operacional da OS:", servicos_nr33, index=None, key="s_33", on_change=resetar_33)
+        st.session_state.servico_selecionado = st.session_state.s_33
         
-        if st.session_state.erro_procedimento:
-            exibir_imagem_repositorio("Alerta_Seguranca.png", "Alerta SST")
-            st.error("🚨 ALERTA DE SEGURANÇA: PROCEDIMENTO INCORRETO DETECTADO!")
-            st.markdown(f"**Ação violada:** *{fluxo_seguranca[st.session_state.etapa_atual]['acao']}*")
-            
-            c_e1, c_e2 = st.columns(2)
-            with c_e1:
-                if st.button("Corrigir Erro (Tentar Novamente)", use_container_width=True, type="primary"):
-                    st.session_state.erro_procedimento = False
-                    st.session_state.responsavel_selecionado = None
-                    st.rerun()
-            with c_e2:
-                if st.button("Cancelar Procedimento (Reiniciar)", use_container_width=True):
-                    resetar_jogo()
-                    st.rerun()
-                    
-        elif st.session_state.etapa_atual >= len(fluxo_seguranca):
-            st.balloons()
-            st.success(f"🎉 **Missão concluída com sucesso no módulo {modulo}!**")
-            st.info(f"📊 **Resultado Operacional:** Treinamento finalizado com **{st.session_state.total_erros} desvios** acumulados.")
-            if st.button("Iniciar Nova Simulação 🔄", use_container_width=True):
-                resetar_jogo()
-                st.rerun()
+        st.selectbox("2. Selecione o Risco à Saúde Associado:", acidentes_disponiveis, index=None, key="a_33", on_change=resetar_33)
+        st.session_state.acidente_selecionado = st.session_state.a_33
+        
+        st.markdown("---")
+        if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_33:
+            st.subheader(f"📍 Cenário Industrial: {st.session_state.servico_selecionado}")
+            exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_33[st.session_state.servico_selecionado], "Cenário NR-33")
         else:
-            passo_atual = fluxo_seguranca[st.session_state.etapa_atual]
-            st.write(f"**OS Ativa:** `{st.session_state.servico_selecionado}`")
-            st.progress(st.session_state.etapa_atual / len(fluxo_seguranca))
-            st.warning(f"👉 **{passo_atual['acao']}**")
+            tab_f, tab_t = st.tabs(["👁️ Visão Frente", "👁️ Visão Topo"])
+            with tab_f: exibir_imagem_repositorio("Esp.Confinado.Frente.png", "Frente")
+            with tab_t: exibir_imagem_repositorio("Esp.Confinado.Topo.png", "Topo")
+    with col_dir_33:
+        st.header("🕹️ Painel de Decisões Técnicas")
+        if not st.session_state.servico_selecionado or not st.session_state.acidente_selecionado:
+            st.info("Configure os dados da Ordem de Serviço na coluna da esquerda para liberar a simulação.")
+        else:
+            acidente_33 = st.session_state.acidente_selecionado
+            item_medico_33 = "Respirador" if ("Asfixia" in acidente_33 or "Gases" in acidente_33) else "Talas"
             
-            if st.session_state.responsavel_selecionado is None:
-                st.markdown("#### 🟥 **PASSO 1:** Clique primeiro no **Responsável** pela tarefa:")
+            fluxo_nr33 = [
+                {"acao": "Instalar a barreira física de pedestais e correntes para delimitar a área de risco", "quem": "Supervisor", "oq": "Isolamento", "mot": "O Supervisor deve garantir o isolamento da área antes de abrir o acesso."},
+                {"acao": "Instalar garras, cadeados e travas nos disjuntores e válvulas de alimentação", "quem": "Supervisor", "oq": "LOTO", "mot": "O bloqueio mecânico (LOTO) e elétrico é gerenciado e inspecionado pelo Supervisor."},
+                {"acao": "Fixar as etiquetas de aviso nos pontos de bloqueio para alertar o impedimento", "quem": "Supervisor", "oq": "Sinalizacao", "mot": "A sinalização do LOTO formaliza o travamento sob coordenação do Supervisor."},
+                {"acao": "Realizar o teste de resposta (bump test) do detector acoplando-o ao cilindro de gás", "quem": "Supervisor", "oq": "Teste Resposta", "mot": "O Supervisor deve certificar o detector de gases antes do uso em campo."},
+                {"acao": "Ligar o conjunto mecânico para injetar ar limpo ou exaurir os gases estagnados no fundo", "quem": "Supervisor", "oq": "Ventilacao", "mot": "O Supervisor determina e monitora o início da ventilação mecânica prévia."},
+                {"acao": "Introduzir a sonda do detector para efetuar a leitura dos gases em múltiplos níveis", "quem": "Supervisor", "oq": "Detector", "mot": "A avaliação atmosférica eletrônica inicial é um dever legal obrigatório do Supervisor."},
+                {"acao": "Preencher e assinar os requisitos de liberação da Permissão de Entrada e Trabalho (PET)", "quem": "Supervisor", "oq": "PET", "mot": "A liberação formal por escrito por meio da PET compete unicamente ao Supervisor."},
+                {"acao": "Montar e preparar a estrutura de ancoragem e o sistema de vantagem mecânica sobre o acesso", "quem": "Vigia", "oq": "Tripe", "mot": "Na fase preparatória preventiva, cabe ao Vigia estruturar os sistemas de movimentação externos."},
+                {"acao": "Equipar o cinto de segurança e descer pelo acesso para iniciar a atividade prática interna", "quem": "Entrante", "oq": "EPI", "mot": "O entrante acessa o interior portando o cinto conectado com segurança à linha de vida."},
+                {"acao": "Monitorar continuamente a atmosfera interna carregando o detector portátil junto a si", "quem": "Entrante", "oq": "Detector", "mot": "O entrante deve portar o detector no interior para captar variações súbitas de gases."},
+                {"acao": "Permanecer do lado de fora em vigilância constante externa e comunicação contínua", "quem": "Vigia", "oq": "LadoFora", "mot": "O Vigia atua mantendo obrigatoriamente o seu posto de controle fixo do lado de fora da área de risco."},
+                {"acao": f"ATENÇÃO! OCORREU UM SINISTRO INTERNO: [{acidente_33}]. Acione o recurso médico correto para o resgate do entrante", "quem": "Resgate", "oq": item_medico_33, "mot": "Na emergência, a Equipe de Resgate assume o salvamento portando o recurso adequado."}
+            ]
+            
+            st.metric(label="⚠️ Desvios / Erros Acumulados (NR-33)", value=st.session_state.erros_acumulados_33)
+            
+            if st.session_state.erro_33:
+                exibir_imagem_repositorio("Alerta_Seguranca.png", "Alerta")
+                st.error("🚨 PROCEDIMENTO INCORRETO DETECTADO!")
+                st.markdown(f"**Ação que gerou a não-conformidade:** *{fluxo_nr33[st.session_state.etapa_atual_33]['acao']}*")
+                c_e1, c_e2 = st.columns(2)
+                with c_e1:
+                    if st.button("Corrigir Erro (Tentar Novamente) 🛠️", key="c_33", use_container_width=True, type="primary"):
+                        st.session_state.erro_33 = False
+                        st.session_state.resp_33 = None
+                        st.rerun()
+                with c_e2:
+                    if st.button("Cancelar Procedimento (Reiniciar) ❌", key="r_33", use_container_width=True):
+                        resetar_33()
+                        st.rerun()
+            elif st.session_state.etapa_atual_33 >= len(fluxo_nr33):
+                st.balloons()
+                st.success("🎉 Simulação de Espaço Confinado Concluída com Sucesso!")
+                st.info(f"📊 Desempenho Técnico: Finalizado com **{st.session_state.erros_acumulados_33} desvios**.")
+                if st.button("Simular Nova OS (NR-33) 🔄", key="b_rein_33", use_container_width=True):
+                    resetar_33()
+                    st.rerun()
             else:
-                st.markdown(f"#### 🟨 **PASSO 2:** Responsável: **[{st.session_state.responsavel_selecionado}]**. Clique na **Imagem/Equipamento**:")
-
-            def avaliar_dupla(tipo, valor):
-                if tipo == "quem":
-                    if valor == passo_atual["quem_correto"]: st.session_state.responsavel_selecionado = valor
-                    else:
-                        st.session_state.total_erros += 1
-                        st.session_state.erro_procedimento = True
-                elif tipo == "o_que":
-                    if st.session_state.responsavel_selecionado is None: return
-                    if valor == passo_atual["o_que_correto"]:
-                        st.session_state.historico_acoes.append(f"🟩 Concluído: {passo_atual['acao']} -> [{passo_atual['quem_correto']}] + [{passo_atual['o_que_correto']}]")
-                        st.session_state.etapa_atual += 1
-                        st.session_state.responsavel_selecionado = None
-                    else:
-                        st.session_state.total_erros += 1
-                        st.session_state.erro_procedimento = True
-                st.rerun()
-
-            # Renderização das Equipes
-            st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
-            t1, t2, t3, t4 = st.columns(4)
-            with t1:
-                exibir_imagem_repositorio("Supervisor.png", "Supervisor")
-                if st.button("Selecionar Supervisor", key="k_sup", use_container_width=True): avaliar_dupla("quem", "Supervisor")
-            with t2:
-                exibir_imagem_repositorio("Entrante.png", "Trabalhador/Entrante")
-                if st.button("Selecionar Trabalhador", key="k_ent", use_container_width=True): avaliar_dupla("quem", "Entrante")
-            with t3:
-                exibir_imagem_repositorio("Vigia.png", "Vigia Externo")
-                if st.button("Selecionar Vigia", key="k_vig", use_container_width=True): avaliar_dupla("quem", "Vigia")
-            with t4:
-                exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
-                if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
-
-            # Dispositivos Comuns e Técnicos da NR-35
-            st.markdown("#### 🔒 2. Isolamento, Bloqueio e Gestão Organizacional")
-            m1, m2, m3, m4, m5, m6 = st.columns(6)
-            with m1:
-                exibir_imagem_repositorio("Isolamento.png", "Isolamento")
-                if st.button("Isolamento Área", key="k_iso", use_container_width=True): avaliar_dupla("o_que", "Isolamento")
-            with m2:
-                exibir_imagem_repositorio("Cadeado.png", "LOTO")
-                if st.button("Cadeado / LOTO", key="k_loto", use_container_width=True): avaliar_dupla("o_que", "LOTO")
-            with m3:
-                exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalizacao")
-                if st.button("Sinalização LOTO", key="k_sin", use_container_width=True): avaliar_dupla("o_que", "Sinalizacao")
-            with m4:
-                exibir_imagem_repositorio("PET.png", "Documentação")
-                if st.button("Assinar PET / PT", key="k_pet", use_container_width=True): avaliar_dupla("o_que", "PET")
-            with m5:
-                exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Bump Test")
-                if st.button("Acionar Bump Test", key="k_bt", use_container_width=True): avaliar_dupla("o_que", "Teste Resposta")
-            with m6:
-                exibir_imagem_repositorio("APR.png", "Análise de Risco")
-                if st.button("Validar APR", key="k_apr", use_container_width=True): avaliar_dupla("o_que", "APR")
-
-            st.markdown("#### ⚙️ 3. Sistemas Atmosféricos, Coletivos e Linhas de Vida")
-            n1, n2, n3, n4, n5 = st.columns(5)
-            with n1:
-                exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilacao")
-                if st.button("Ventilação/Purga", key="k_vent", use_container_width=True): avaliar_dupla("o_que", "Ventilacao")
-            with n2:
-                exibir_imagem_repositorio("DetectorGas.png", "Detector")
-                if st.button("Medição Gases", key="k_det", use_container_width=True): avaliar_dupla("o_que", "Detector")
-            with n3:
-                exibir_imagem_repositorio("Tripe.png", "Tripé")
-                if st.button("Tripé / Roldanas", key="k_tri", use_container_width=True): avaliar_dupla("o_que", "Tripe")
-            with n4:
-                exibir_imagem_repositorio("Talabarte_Y.png", "Talabarte Y")
-                if st.button("Acionar Talabarte Y", key="k_ty", use_container_width=True): avaliar_dupla("o_que", "Talabarte_Y")
-            with n5:
-                exibir_imagem_repositorio("TravaQuedas.png", "TravaQuedas")
-                if st.button("Acionar Trava-Quedas", key="k_tq", use_container_width=True): avaliar_dupla("o_que", "TravaQuedas")
-
-            st.markdown("#### 🪖 4. Equipamentos Individuais e Proteção de Trauma")
-            o1, o2, o3, o4 = st.columns(4)
-            with o1:
-                exibir_imagem_repositorio("Cinto_Seguranca.png", "EPI")
-                if st.button("Equipar Cinto/EPI", key="k_epi", use_container_width=True): avaliar_dupla("o_que", "EPI")
-            with o2:
-                exibir_imagem_repositorio("Radio_Comunicacao.png", "HT")
-                if st.button("Rádio HT", key="k_com", use_container_width=True): avaliar_dupla("o_que", "Comunicacao")
-            with o3:
-                exibir_imagem_repositorio("Lado_de_fora.png", "Posto Externo")
-                if st.button("Posto Externo (Fora)", key="k_out", use_container_width=True): avaliar_dupla("o_que", "LadoFora")
-            with o4:
-                exibir_imagem_repositorio("Fita_AntiTrauma.png", "Fita Alívio")
-                if st.button("Fita Anti-Trauma", key="k_fat", use_container_width=True): avaliar_dupla("o_que", "Fita_AntiTrauma")
-
-            # 🚑 5. Emergência Tática Final Integrada
-            if st.session_state.etapa_atual == (len(fluxo_seguranca) - 1):
-                st.markdown("---")
-                st.markdown("### 🚑 5. Recursos Médicos para Sinistros (Clique para acionar)")
-                if "Arnês" in st.session_state.acidente_selecionado or "Asfixia" in st.session_state.acidente_selecionado:
-                    st.info("💡 **Dica Técnica:** Riscos respiratórios ou suspensões inertes exigem o uso do **Respirador** ou manobras táticas rápidas para oxigenação das pernas.")
-                else:
-                    st.info("💡 **Dica Técnica:** Quedas estruturais ou prensamentos com suspeitas de fraturas exigem a imobilização local com **Talas/Ataduras** ou **Maca Rígida** antes do içamento.")
-
-                f1, f2, f3, f4 = st.columns(4)
-                with f1:
-                    exibir_imagem_repositorio("Respirador_Autonomo.png", "Respirador")
-                    if st.button("Respirador Autônomo", key="f_m1", use_container_width=True): avaliar_dupla("o_que", "Respirador")
-                with f2:
-                    exibir_imagem_repositorio("Colar_Cervical.png", "Maca Rígida")
-                    if st.button("Maca Rígida + Colar", key="f_m2", use_container_width=True): avaliar_dupla("o_que", "MacaRigida")
-                with f3:
-                    exibir_imagem_repositorio("Maca_Sked.png", "Maca Sked")
-                    if st.button("Maca Sked Envelope", key="f_m3", use_container_width=True): avaliar_dupla("o_que", "MacaSked")
-                with f4:
-                    exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")
-                    if st.button("Talas e Ataduras", key="f_m4", use_container_width=True): avaliar_dupla("o_que", "Talas")
-
-        if st.session_state.historico_acoes:
+                p_33 = fluxo_nr33[st.session_state.etapa_atual_33]
+                st.progress(st.session_state.etapa_atual_33 / len(fluxo_nr33))
+                st.warning(f"👉 **{p_33['acao']}**")
+                
+                if st.session_state.resp_33 is None: st.markdown("#### 🟥 **PASSO 1:** Clique no **Responsável** pela tarefa:")
+                else: st.markdown(f"#### 🟨 **PASSO 2:** Responsável: **[{st.session_state.resp_33}]**. Clique no **Dispositivo/Ação**:")
+                
+                def val_33(tipo, val):
+                    if tipo == "quem":
+                        if val == p_33["quem"]: st.session_state.resp_33 = val
+                        else: st.session_state.erros_acumulados_33 += 1; st.session_state.erro_33 = True
+                    elif tipo == "oq":
+                        if st.session_state.resp_33 is None: return
+                        if val == p_33["oq"]:
+                            st.session_state.hist_33.append(f"🟩 Concluído: {p_33['acao']} -> [{p_33['quem']}] + [{p_33['oq']}]")
+                            st.session_state.etapa_atual_33 += 1
+                            st.session_state.resp_33 = None
+                        else: st.session_state.erros_acumulados_33 += 1; st.session_state.erro_33 = True
+                    st.rerun()
+                
+                # Interface de Botões Comuns 33
+                st.markdown("#### 👥 1. Integrantes da Equipe")
+                q1, q2, q3, q4 = st.columns(4)
+                with q1: exibir_imagem_repositorio("Supervisor.png", "Supervisor"); st.button("Supervisor", key="q_su", use_container_width=True, on_click=val_33, args=("quem", "Supervisor"))
+                with q2: exibir_imagem_repositorio("Entrante.png", "Entrante"); st.button("Entrante", key="q_en", use_container_width=True, on_click=val_33, args=("quem", "Entrante"))
+                with q3: exibir_imagem_repositorio("Vigia.png", "Vigia"); st.button("Vigia", key="q_vi", use_container_width=True, on_click=val_33, args=("quem", "Vigia"))
+                with q4: exibir_imagem_repositorio("Resgate1.png", "Resgate"); st.button("Equipe Resgate", key="q_re", use_container_width=True, on_click=val_33, args=("quem", "Resgate"))
+                
+                st.markdown("#### 🔒 2. Isolamento, Bloqueio e Dispositivos")
+                w1, w2, w3, w4, w5 = st.columns(5)
+                with w1: exibir_imagem_repositorio("Isolamento.png", "Iso"); st.button("Isolamento Área", key="w_is", use_container_width=True, on_click=val_33, args=("o_que", "Isolamento"))
+                with w2: exibir_imagem_repositorio("Cadeado.png", "LOTO"); st.button("Cadeado / LOTO", key="w_lo", use_container_width=True, on_click=val_33, args=("o_que", "LOTO"))
+                with w3: exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sin"); st.button("Sinalização LOTO", key="w_si", use_container_width=True, on_click=val_33, args=("o_que", "Sinalizacao"))
+                with w4: exibir_imagem_repositorio("PET.png", "PET"); st.button("Emitir / Assinar PET", key="w_pe", use_container_width=True, on_click=val_33, args=("o_que", "PET"))
+                with w5: exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Bump"); st.button("Acionar Bump Test", key="w_bu", use_container_width=True, on_click=val_33, args=("o_que", "Teste Resposta"))
+                
+                st.markdown("#### ⚙️ 3. Sistemas Atmosféricos e Proteções")
+                r1, r2, r3, r4, r5 = st.columns(5)
+                with r1: exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Vent"); st.button("Ventilação/Purga", key="r_ve", use_container_width=True, on_click=val_33, args=("o_que", "Ventilacao"))
+                with r2: exibir_imagem_repositorio("DetectorGas.png", "Det"); st.button("Medição Gases", key="r_de", use_container_width=True, on_click=val_33, args=("o_que", "Detector"))
+                with r3: exibir_imagem_repositorio("Tripe.png", "Tri"); st.button("Tripé Ancoragem", key="r_tr", use_container_width=True, on_click=val_33, args=("o_que", "Tripe"))
+                with r4: exibir_imagem_repositorio("Cinto_Seguranca.png", "EPI"); st.button("Cinto / EPI", key="r_ep", use_container_width=True, on_click=val_33, args=("o_que", "EPI"))
+                with r5: exibir_imagem_repositorio("Radio_Comunicacao.png", "HT"); st.button("Rádio HT", key="r_ht", use_container_width=True, on_click=val_33, args=("o_que", "Comunicacao"))
+                with r1: exibir_imagem_repositorio("Lado_de_fora.png", "Fora"); st.button("Posto Externo", key="r_fo", use_container_width=True, on_click=val_33, args=("o_que", "LadoFora"))
+                
+                if st.session_state.etapa_atual_33 == (len(fluxo_nr33) - 1):
+                    st.markdown("#### 🚑 5. Recursos de Salvamento Disponíveis")
+                    m1, m2 = st.columns(2)
+# =========================================================================
+#                    A B A   N R - 3 5   (TRABALHO EM ALTURA)
+# =========================================================================
+with tab_nr35:
+    st.title("🧗 Simulador Prático NR-35")
+    col_esq_35, col_dir_35 = st.columns([1.1, 1.3], gap="large")
+    
+    with col_esq_35:
+        st.header("📸 Configuração e Engenharia do Cenário")
+        st.selectbox("1. Selecione a Atividade de Trabalho em Altura:", servicos_nr35, index=None, key="s_35", on_change=resetar_35)
+        st.session_state.servico_selecionado_35 = st.session_state.s_35
+        
+        st.selectbox("2. Selecione o Cenário de Acidente Potencial:", acidentes_disponiveis, index=None, key="a_35", on_change=resetar_35)
+        st.session_state.acidente_selecionado_35 = st.session_state.a_35
+        
+        st.markdown("---")
+        
+        # --- ENGENHARIA DE DADOS DA ZONA LIVRE DE QUEDA (ZLQ) SOLICITADA ---
+        if st.session_state.servico_selecionado_35:
+            servico_atual = st.session_state.servico_selecionado_35
+            
+            # Autopreenchimento de Fator de Queda e sugestão de valores lógicos conforme seu critério
+            if "Telhado" in servico_atual:
+                fq_sugerido = "FQ = 2 (Ancoragem nos pés / Topo do cenário)"
+                alt_sug, anc_sug, zlq_t_sug = 5.0, 0.0, 5.5
+            elif "Fachada" in servico_atual:
+                fq_sugerido = "FQ = 1 (Ancoragem na linha do peito/ombro)"
+                alt_sug, anc_sug, zlq_t_sug = 6.0, 1.0, 4.5
+            else:
+                fq_sugerido = "FQ < 1 (Ancoragem acima da cabeça)"
+                alt_sug, anc_sug, zlq_t_sug = 8.0, 2.0, 3.5
+                
+            st.markdown(f"### 📐 Parâmetros Técnicos do Cenário:\n**Análise Geométrica Automática:** `{fq_sugerido}`")
+            
+            # Inputs manuais para o Engenheiro/Técnico simular
+            h_cenario = st.number_input("Altura Total do Cenário (metros até o chão):", min_value=1.0, max_value=30.0, value=alt_sug, step=0.5)
+            h_ancoragem = st.number_input("Distância do Topo do Cenário até o Ponto de Ancoragem (metros):", min_value=0.0, max_value=5.0, value=anc_sug, step=0.1)
+            zlq_talabarte = st.number_input("Zona Livre de Queda (ZLQ) Requerida pelo Fabricante do Talabarte (metros):", min_value=1.0, max_value=10.0, value=zlq_t_sug, step=0.1)
+            
+            # Cálculo exato unificado conforme sua correção
+            zlq_local = h_cenario + h_ancoragem
+            
             st.markdown("---")
-            st.write("📋 **Histórico de Passos Concluídos com Sucesso:**")
-            for item in st.session_state.historico_acoes: st.write(item)
+            st.markdown(f"#### 📊 Memorial de Cálculo Técnico:")
+            st.markdown(f"🔹 **ZLQ do Local de Trabalho:** `{zlq_local:.2f} metros` (Espaço real disponível até colidir com o chão)")
+            st.markdown(f"🔹 **ZLQ Exigida pelo Equipamento:** `{zlq_talabarte:.2f} metros` (Extensão do talabarte + Absorvedor aberto + Estatura + Zona de segurança)")
+            
+            # Validação Crítica de Segurança Operacional
+            if zlq_local >= zlq_talabarte:
+                st.success("🟩 **ANÁLISE DE RISCO APROVADA:** A ZLQ do local é suficiente. O trabalhador NÃO colidirá com o chão em caso de queda. Atividade liberada para execução.")
+                atividade_suspensa = False
+            else:
+                st.error("🟥 **FALHA CRÍTICA DE SEGURANÇA: OPERAÇÃO SUSPENSA!** A ZLQ local é menor que a requerida pelo equipamento. Em caso de queda, o trabalhador impactará contra o solo. Reduza o fator de queda, eleve a ancoragem ou use trava-quedas retrátil!")
+                atividade_suspensa = True
+                
+            st.markdown("---")
+            if servico_atual in MAPEAMENTO_CENARIOS_35:
+                st.subheader(f"📍 Cenário Ativo: {servico_atual}")
+                exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_35[servico_atual], "Cenário NR-35")
+                    with col_dir_35:
+        st.header("🕹️ Painel de Operações Técnicas")
+        if not st.session_state.servico_selecionado_35 or not st.session_state.acidente_selecionado_35:
+            st.info("Configure a Ordem de Serviço e Risco à esquerda para liberar o painel da NR-35.")
+        elif atividade_suspensa:
+            st.warning("⚠️ Painel de Decisões Bloqueado! Corrija os parâmetros de engenharia à esquerda (aumente a altura ou diminua a ZLQ do talabarte) para viabilizar a liberação segura da atividade.")
+        else:
+            acidente_35 = st.session_state.acidente_selecionado_35
+            servico_35 = st.session_state.servico_selecionado_35
+            
+            # Ocultação dinâmica do Vigia solicitada: Se disser 'Sem Vigia', esconde o papel
+            ocultar_vigia_35 = "Sem Vigia" in servico_35
+            monitor_35 = "Entrante" if ocultar_vigia_35 else "Vigia"
+            
+            item_medico_35 = "MacaRigida" if "Coluna" in acidente_35 else "Talas"
+            
+            fluxo_nr35 = [
+                {"acao": "Elaborar e validar a Análise Preliminar de Risco (APR) listando os perigos da atividade em altura", "quem": "Supervisor", "oq": "APR", "mot": "O Supervisor deve certificar que os riscos e recursos estão corretos antes da liberação."},
+                {"acao": "Isolar fisicamente a área de solo correspondente à projeção de queda de materiais", "quem": "Supervisor", "oq": "Isolamento", "mot": "Cabe ao Supervisor assegurar o isolamento de periferia na base da estrutura."},
+                {"acao": "Emitir formalmente a assinatura de liberação da Permissão de Trabalho (PT) em altura", "quem": "Supervisor", "oq": "PET", "mot": "A auditoria técnica final e assinatura de liberação da PT competem ao Supervisor."},
+                {"acao": "Ajustar os cintos de segurança paraquedistas de todos os envolvidos e checar as fivelas em dupla", "quem": "Entrante", "oq": "EPI", "mot": "Os trabalhadores executantes devem realizar a inspeção e ajuste do próprio cinto antes de subir."},
+                {"acao": "Conectar o gancho do Talabarte duplo em Y ou dispositivo Trava-quedas na linha de vida", "quem": "Entrante", "oq": "Talabarte_Y" if "Arnês" in acidente_35 else "TravaQuedas", "mot": "O trabalhador deve se ancorar fixamente à linha de vida antes de iniciar os trabalhos técnicos."},
+                {"acao": "Iniciar a subida e executar a atividade técnica no topo da estrutura conforme o quantitativo da OS", "quem": "Entrante", "oq": "Ventilacao", "mot": "Após a liberação e ancoragem, a equipe técnica inicia a execução dos serviços em altura."},
+                {"acao": "Garantir o monitoramento constante das condições de risco e manter a prontidão do rádio HT", "quem": monitor_35, "oq": "Comunicacao", "mot": "O encarregado do monitoramento acompanha os riscos climáticos ao redor."},
+                {"acao": f"ALERTA! OCORREU UMA QUEDA COM SUSPENSÃO: [{acidente_35}]. Lance imediatamente o recurso de alívio circulatório contra a Síndrome do Arnês", "quem": monitor_35, "oq": "Fita_AntiTrauma", "mot": "O encarregado do monitoramento deve agir rápido para prover a fita de suspensão e evitar o choque circulatório."},
+                {"acao": "Mobilizar a brigada, acessar o trabalhador suspenso por cordas e operar o sistema mecânico de descida vertical", "quem": "Resgate", "oq": "Tripe", "mot": "Em caso de sinistro na altura, a Equipe de Resgate assume a operação técnica de polias e descida tática da vítima."},
+                {"acao": "Estabilizar a cervical e realizar a imobilização completa do acidentado no solo antes do transporte técnico", "quem": "Resgate", "oq": item_medico_35, "mot": "O time de resgate presta os primeiros socorros imobilizando o trauma no solo conforme o diagnóstico do acidente."}
+            ]
+            
+            st.metric(label="⚠️ Desvios / Erros Acumulados (NR-35)", value=st.session_state.erros_acumulados_35)
+            
+            if st.session_state.erro_35:
+                exibir_imagem_repositorio("Alerta_Seguranca.png", "Alerta")
+                st.error("🚨 PROCEDIMENTO INCORRETO DETECTADO!")
+                st.markdown(f"**Ação violada:** *{fluxo_nr35[st.session_state.etapa_atual_35]['acao']}*")
+                c_y1, c_y2 = st.columns(2)
+                with c_y1:
+                    if st.button("Corrigir Erro (Tentar Novamente) 🛠️", key="c_35", use_container_width=True, type="primary"):
+                        st.session_state.erro_35 = False; st.session_state.resp_35 = None; st.rerun()
+                with c_y2:
+                    if st.button("Cancelar Procedimento (Reiniciar) ❌", key="r_35", use_container_width=True):
+                        resetar_35(); st.rerun()
+            elif st.session_state.etapa_atual_
