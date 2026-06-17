@@ -334,3 +334,18 @@ with col_direita:
                     if st.button("Acionar Colar + Maca Rígida", key="btn_m2", use_container_width=True): avaliar_dupla("o_que", "MacaRigida")
                 with res3:
                     exibir_imagem_repositorio("Maca_Sked.png", "MacaSked")
+                with res3:
+                    exibir_imagem_repositorio("Maca_Sked.png", "MacaSked")
+                    if st.button("Acionar Maca Sked", key="btn_m3", use_container_width=True): 
+                        avaliar_dupla("o_que", "MacaSked")
+                with res4:
+                    exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")
+                    if st.button("Acionar Talas e Ataduras", key="btn_m4", use_container_width=True): 
+                        avaliar_dupla("o_que", "Talas")
+
+        # Renderização do histórico final de passos com sucesso
+        if st.session_state.historico_acoes:
+            st.markdown("---")
+            st.write("📋 **Histórico de Passos Concluídos com Sucesso:**")
+            for item in st.session_state.historico_acoes: 
+                st.write(item)
