@@ -159,6 +159,7 @@ def obter_fluxo_nr35():
         {"acao": "Estabilizar a cervical e realizar a imobilização completa do acidentado no solo antes do transporte técnico", "quem_correto": "Resgate", "o_que_correto": "MacaRigida" if "Coluna" in acidente else item_medico_requerido, "motivo": "O time de resgate presta os primeiros socorros imobilizando o trauma no solo conforme o diagnóstico do acidente."}
     ]
 # --- CONSTRUÇÃO DO LAYOUT EM DUAS COLUNAS ---
+# --- RENDERIZAÇÃO DO CONTEXTO DE LAYOUT ---
 col_esquerda, col_direita = st.columns([1.1, 1.3], gap="large")
 
 with col_esquerda:
@@ -183,11 +184,12 @@ with col_esquerda:
         st.session_state.acidente_selecionado = st.session_state.sel_a_33
 
     # 2. Fluxo Visual Exclusivo se a Aba selecionada for NR-35
-    if modulo == "NR-35 (Trabalho em Altura)":
+    elif modulo == "NR-35 (Trabalho em Altura)":
         st.selectbox("1. Escolha a atividade industrial em altura:", servicos_nr35, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_s_35")
         st.session_state.servico_selecionado = st.session_state.sel_s_35
         st.selectbox("2. Escolha o risco à saúde associado:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_35")
         st.session_state.acidente_selecionado = st.session_state.sel_a_35
+
         if st.session_state.servico_selecionado:
             if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_35:
                 st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
@@ -221,6 +223,7 @@ with col_esquerda:
                 st.error("🔴 **ATIVIDADE SUSPENSA CRITICAMENTE:** Em caso de queda, o trabalhador colidirá contra o chão! Aumente a ancoragem ou reduza o tamanho do talabarte.")
                 st.session_state.bloqueio_calculo_altura = True
 
+
 # --- COLUNA DIREITA: MECÂNICA DO SIMULADOR INTEGRADO ---
 with col_direita:
     st.header("🕹️ Painel de Decisões Técnicas")
@@ -250,123 +253,124 @@ with col_direita:
             if st.button("Cancelar Procedimento (Reiniciar)", use_container_width=True):
                 resetar_jogo()
                 st.rerun()
+                
+    else:
+        fluxo_seguranca = obter_fluxo_nr33() if modulo == "NR-33 (Espaço Confinado)" else obter_fluxo_nr35()
+        st.metric(label="⚠️ Desvios / Erros Cometidos na Missão", value=st.session_state.total_erros)
+        
+        if st.session_state.etapa_atual >= len(fluxo_seguranca):
+            st.balloons()
+            st.success(f"🎉 **Missão concluída com sucesso no módulo {modulo}!**")
+            st.info(f"📊 **Resultado Operacional:** Treinamento finalizado com **{st.session_state.total_erros} desvios** acumulados.")
+            if st.button("Iniciar Nova Simulação 🔄", use_container_width=True):
+                resetar_jogo()
+                st.rerun()
         else:
-            fluxo_seguranca = obter_fluxo_nr33() if modulo == "NR-33 (Espaço Confinado)" else obter_fluxo_nr35()
-            st.metric(label="⚠️ Desvios / Erros Cometidos na Missão", value=st.session_state.total_erros)
+            passo_atual = fluxo_seguranca[st.session_state.etapa_atual]
+            st.write(f"**OS Ativa:** `{st.session_state.servico_selecionado}`")
+            st.progress(st.session_state.etapa_atual / len(fluxo_seguranca))
+            st.warning(f"👉 **{passo_atual['acao']}**")
             
-            if st.session_state.etapa_atual >= len(fluxo_seguranca):
-                st.balloons()
-                st.success(f"🎉 **Missão concluída com sucesso no módulo {modulo}!**")
-                st.info(f"📊 **Resultado Operacional:** Treinamento finalizado com **{st.session_state.total_erros} desvios** acumulados.")
-                if st.button("Iniciar Nova Simulação 🔄", use_container_width=True):
-                    resetar_jogo()
-                    st.rerun()
+            if st.session_state.responsavel_selecionado is None:
+                st.markdown("#### 🟥 **PASSO 1:** Clique primeiro no **Responsável** pela tarefa:")
             else:
-                passo_atual = fluxo_seguranca[st.session_state.etapa_atual]
-                st.write(f"**OS Ativa:** `{st.session_state.servico_selecionado}`")
-                st.progress(st.session_state.etapa_atual / len(fluxo_seguranca))
-                st.warning(f"👉 **{passo_atual['acao']}**")
+                st.markdown(f"#### 🟨 **PASSO 2:** Responsável: **[{st.session_state.responsavel_selecionado}]**. Clique na **Imagem/Equipamento**:")
+
+            def avaliar_dupla(tipo, valor):
+                if tipo == "quem":
+                    if valor == passo_atual["quem_correto"]: st.session_state.responsavel_selecionado = valor
+                    else:
+                        st.session_state.total_erros += 1
+                        st.session_state.erro_procedimento = True
+                elif tipo == "o_que":
+                    if st.session_state.responsavel_selecionado is None: return
+                    if valor == passo_atual["o_que_correto"]:
+                        st.session_state.historico_acoes.append(f"🟩 Concluído: {passo_atual['acao']} -> [{passo_atual['quem_correto']}] + [{passo_atual['o_que_correto']}]")
+                        st.session_state.etapa_atual += 1
+                        st.session_state.responsavel_selecionado = None
+                    else:
+                        st.session_state.total_erros += 1
+                        st.session_state.erro_procedimento = True
+                st.rerun()
+
+            # Renderização Dinâmica das Equipes
+            st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
+            ocultar_vigia = (modulo == "NR-35 (Trabalho em Altura)") and ("Sem Vigia" in st.session_state.servico_selecionado)
+            colunas_equipe = st.columns(3 if ocultar_vigia else 4)
+            
+            with colunas_equipe:
+                exibir_imagem_repositorio("Supervisor.png", "Supervisor")
+                if st.button("Selecionar Supervisor", key="k_sup", use_container_width=True): avaliar_dupla("quem", "Supervisor")
+            with colunas_equipe:
+                exibir_imagem_repositorio("Entrante.png", "Trabalhador")
+                if st.button("Selecionar Trabalhador", key="k_ent", use_container_width=True): avaliar_dupla("quem", "Entrante")
                 
-                if st.session_state.responsavel_selecionado is None:
-                    st.markdown("#### 🟥 **PASSO 1:** Clique primeiro no **Responsável** pela tarefa:")
-                else:
-                    st.markdown(f"#### 🟨 **PASSO 2:** Responsável: **[{st.session_state.responsavel_selecionado}]**. Clique na **Imagem/Equipamento**:")
-
-                def avaliar_dupla(tipo, valor):
-                    if tipo == "quem":
-                        if valor == passo_atual["quem_correto"]: st.session_state.responsavel_selecionado = valor
-                        else:
-                            st.session_state.total_erros += 1
-                            st.session_state.erro_procedimento = True
-                    elif tipo == "o_que":
-                        if st.session_state.responsavel_selecionado is None: return
-                        if valor == passo_atual["o_que_correto"]:
-                            st.session_state.historico_acoes.append(f"🟩 Concluído: {passo_atual['acao']} -> [{passo_atual['quem_correto']}] + [{passo_atual['o_que_correto']}]")
-                            st.session_state.etapa_atual += 1
-                            st.session_state.responsavel_selecionado = None
-                        else:
-                            st.session_state.total_erros += 1
-                            st.session_state.erro_procedimento = True
-                    st.rerun()
-
-                # Renderização Dinâmica das Equipes
-                st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
-                ocultar_vigia = (modulo == "NR-35 (Trabalho em Altura)") and ("Sem Vigia" in st.session_state.servico_selecionado)
-                colunas_equipe = st.columns(3 if ocultar_vigia else 4)
-                
+            if not ocultar_vigia:
                 with colunas_equipe:
-                    exibir_imagem_repositorio("Supervisor.png", "Supervisor")
-                    if st.button("Selecionar Supervisor", key="k_sup", use_container_width=True): avaliar_dupla("quem", "Supervisor")
+                    exibir_imagem_repositorio("Vigia.png", "Vigia Externo")
+                    if st.button("Selecionar Vigia", key="k_vig", use_container_width=True): avaliar_dupla("quem", "Vigia")
                 with colunas_equipe:
-                    exibir_imagem_repositorio("Entrante.png", "Trabalhador")
-                    if st.button("Selecionar Trabalhador", key="k_ent", use_container_width=True): avaliar_dupla("quem", "Entrante")
-                    
-                if not ocultar_vigia:
-                    with colunas_equipe:
-                        exibir_imagem_repositorio("Vigia.png", "Vigia Externo")
-                        if st.button("Selecionar Vigia", key="k_vig", use_container_width=True): avaliar_dupla("quem", "Vigia")
-                    with colunas_equipe:
-                        exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
-                        if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
-                else:
-                    with colunas_equipe:
-                        exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
-                        if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
+                    exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
+                    if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
+            else:
+                with colunas_equipe:
+                    exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
+                    if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
 
-                # Dispositivos Comuns e Técnicos
-                st.markdown("#### 🔒 2. Isolamento, Bloqueio e Gestão Organizacional")
-                m1, m2, m3, m4, m5, m6 = st.columns(6)
-                with m1:
-                    exibir_imagem_repositorio("Isolamento.png", "Isolamento")
-                    if st.button("Isolamento Área", key="k_iso", use_container_width=True): avaliar_dupla("o_que", "Isolamento")
-                with m2:
-                    exibir_imagem_repositorio("Cadeado.png", "LOTO")
-                    if st.button("Cadeado / LOTO", key="k_loto", use_container_width=True): avaliar_dupla("o_que", "LOTO")
-                with m3:
-                    exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalizacao")
-                    if st.button("Sinalização LOTO", key="k_sin", use_container_width=True): avaliar_dupla("o_que", "Sinalizacao")
-                with m4:
-                    exibir_imagem_repositorio("PET.png", "Documentação")
-                    if st.button("Assinar PET / PT", key="k_pet", use_container_width=True): avaliar_dupla("o_que", "PET")
-                with m5:
-                    exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Bump Test")
-                    if st.button("Acionar Bump Test", key="k_bt", use_container_width=True): avaliar_dupla("o_que", "Teste Resposta")
-                with m6:
-                    exibir_imagem_repositorio("APR.png", "Análise de Risco")
-                    if st.button("Validar APR", key="k_apr", use_container_width=True): avaliar_dupla("o_que", "APR")
+            # Dispositivos Comuns e Técnicos
+            st.markdown("#### 🔒 2. Isolamento, Bloqueio e Gestão Organizacional")
+            m1, m2, m3, m4, m5, m6 = st.columns(6)
+            with m1:
+                exibir_imagem_repositorio("Isolamento.png", "Isolamento")
+                if st.button("Isolamento Área", key="k_iso", use_container_width=True): avaliar_dupla("o_que", "Isolamento")
+            with m2:
+                exibir_imagem_repositorio("Cadeado.png", "LOTO")
+                if st.button("Cadeado / LOTO", key="k_loto", use_container_width=True): avaliar_dupla("o_que", "LOTO")
+            with m3:
+                exibir_imagem_repositorio("Sinalizacao.NaoOpere.png", "Sinalizacao")
+                if st.button("Sinalização LOTO", key="k_sin", use_container_width=True): avaliar_dupla("o_que", "Sinalizacao")
+            with m4:
+                exibir_imagem_repositorio("PET.png", "Documentação")
+                if st.button("Assinar PET / PT", key="k_pet", use_container_width=True): avaliar_dupla("o_que", "PET")
+            with m5:
+                exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Bump Test")
+                if st.button("Acionar Bump Test", key="k_bt", use_container_width=True): avaliar_dupla("o_que", "Teste Resposta")
+            with m6:
+                exibir_imagem_repositorio("APR.png", "Análise de Risco")
+                if st.button("Validar APR", key="k_apr", use_container_width=True): avaliar_dupla("o_que", "APR")
 
-                st.markdown("#### ⚙️ 3. Sistemas Atmosféricos, Coletivos e Linhas de Vida")
-                n1, n2, n3, n4, n5 = st.columns(5)
-                with n1:
-                    exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilacao")
-                    if st.button("Ventilação/Purga", key="k_vent", use_container_width=True): avaliar_dupla("o_que", "Ventilacao")
-                with n2:
-                    exibir_imagem_repositorio("DetectorGas.png", "Detector")
-                    if st.button("Medição Gases", key="k_det", use_container_width=True): avaliar_dupla("o_que", "Detector")
-                with n3:
-                    exibir_imagem_repositorio("Tripe.png", "Tripé")
-                    if st.button("Tripé / Roldanas", key="k_tri", use_container_width=True): avaliar_dupla("o_que", "Tripe")
-                with n4:
-                    exibir_imagem_repositorio("Talabarte_Y.png", "Talabarte Y")
-                    if st.button("Acionar Talabarte Y", key="k_ty", use_container_width=True): avaliar_dupla("o_que", "Talabarte_Y")
-                with n5:
-                    exibir_imagem_repositorio("TravaQuedas.png", "TravaQuedas")
-                    if st.button("Acionar Trava-Quedas", key="k_tq", use_container_width=True): avaliar_dupla("o_que", "TravaQuedas")
+            st.markdown("#### ⚙️ 3. Sistemas Atmosféricos, Coletivos e Linhas de Vida")
+            n1, n2, n3, n4, n5 = st.columns(5)
+            with n1:
+                exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilacao")
+                if st.button("Ventilação/Purga", key="k_vent", use_container_width=True): avaliar_dupla("o_que", "Ventilacao")
+            with n2:
+                exibir_imagem_repositorio("DetectorGas.png", "Detector")
+                if st.button("Medição Gases", key="k_det", use_container_width=True): avaliar_dupla("o_que", "Detector")
+            with n3:
+                exibir_imagem_repositorio("Tripe.png", "Tripé")
+                if st.button("Tripé / Roldanas", key="k_tri", use_container_width=True): avaliar_dupla("o_que", "Tripe")
+            with n4:
+                exibir_imagem_repositorio("Talabarte_Y.png", "Talabarte Y")
+                if st.button("Acionar Talabarte Y", key="k_ty", use_container_width=True): avaliar_dupla("o_que", "Talabarte_Y")
+            with n5:
+                exibir_imagem_repositorio("TravaQuedas.png", "TravaQuedas")
+                if st.button("Acionar Trava-Quedas", key="k_tq", use_container_width=True): avaliar_dupla("o_que", "TravaQuedas")
 
-                st.markdown("#### 🪖 4. Equipamentos Individuais e Proteção de Trauma")
-                o1, o2, o3, o4 = st.columns(4)
-                with o1:
-                    exibir_imagem_repositorio("Cinto_Seguranca.png", "EPI")
-                    if st.button("Equipar Cinto/EPI", key="k_epi", use_container_width=True): avaliar_dupla("o_que", "EPI")
-                with o2:
-                    exibir_imagem_repositorio("Radio_Comunicacao.png", "HT")
-                    if st.button("Rádio HT", key="k_com", use_container_width=True): avaliar_dupla("o_que", "Comunicacao")
-                with o3:
-                    exibir_imagem_repositorio("Lado_de_fora.png", "Posto Externo")
-                    if st.button("Posto Externo (Fora)", key="k_out", use_container_width=True): avaliar_dupla("o_que", "LadoFora")
-                with o4:
-                    exibir_imagem_repositorio("Fita_AntiTrauma.png", "Fita Alívio")
-                    if st.button("Fita Anti-Trauma", key="k_fat", use_container_width=True): avaliar_dupla("o_que", "Fita_AntiTrauma")
+            st.markdown("#### 🪖 4. Equipamentos Individuais e Proteção de Trauma")
+            o1, o2, o3, o4 = st.columns(4)
+            with o1:
+                exibir_imagem_repositorio("Cinto_Seguranca.png", "EPI")
+                if st.button("Equipar Cinto/EPI", key="k_epi", use_container_width=True): avaliar_dupla("o_que", "EPI")
+            with o2:
+                exibir_imagem_repositorio("Radio_Comunicacao.png", "HT")
+                if st.button("Rádio HT", key="k_com", use_container_width=True): avaliar_dupla("o_que", "Comunicacao")
+            with o3:
+                exibir_imagem_repositorio("Lado_de_fora.png", "Posto Externo")
+                if st.button("Posto Externo (Fora)", key="k_out", use_container_width=True): avaliar_dupla("o_que", "LadoFora")
+            with o4:
+                exibir_imagem_repositorio("Fita_AntiTrauma.png", "Fita Alívio")
+                if st.button("Fita Anti-Trauma", key="k_fat", use_container_width=True): avaliar_dupla("o_que", "Fita_AntiTrauma")
 
                 # 🚑 5. Emergência Tática Final Integrada
                 if st.session_state.etapa_atual == (len(fluxo_seguranca) - 1):
@@ -389,8 +393,7 @@ with col_direita:
                         if st.button("Maca Sked Envelope", key="f_m3", use_container_width=True): avaliar_dupla("o_que", "MacaSked")
                     with f4:
                         exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")
-                    if st.button("Talas e Ataduras", key="f_m4", use_container_width=True): 
-                        avaliar_dupla("o_que", "Talas")
+                        if st.button("Talas e Ataduras", key="f_m4", use_container_width=True): avaliar_dupla("o_que", "Talas")
 
         if st.session_state.historico_acoes:
             st.markdown("---")
