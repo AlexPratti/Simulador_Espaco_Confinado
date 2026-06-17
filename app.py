@@ -164,6 +164,7 @@ def obter_fluxo_nr35():
         {"acao": "Mobilizar a brigada, acessar o trabalhador suspenso por cordas e operar o sistema mecânico de descida vertical", "quem_correto": "Resgate", "o_que_correto": "Tripe", "motivo": "Em caso de sinistro na altura, a Equipe de Resgate assume a operação técnica de polias e descida tática da vítima."},
         {"acao": "Estabilizar a cervical e realizar a imobilização completa do acidentado no solo antes do transporte técnico", "quem_correto": "Resgate", "o_que_correto": "MacaRigida" if "Coluna" in acidente else item_medico_requerido, "motivo": "O time de resgate presta os primeiros socorros imobilizando o trauma no solo conforme o diagnóstico do acidente."}
     ]
+
 # --- RENDERIZAÇÃO DO CONTEXTO DE LAYOUT ---
 col_esquerda, col_direita = st.columns([1.1, 1.3], gap="large")
 
@@ -186,7 +187,7 @@ with col_esquerda:
         st.selectbox("2. Escolha o sinistro potencial:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_33")
         st.session_state.acidente_selecionado = st.session_state.sel_a_33
 
-    else:
+    elif modulo == "NR-35 (Trabalho em Altura)":
         if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_35:
             st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
             exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_35[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
@@ -201,7 +202,7 @@ with col_esquerda:
         st.selectbox("2. Escolha o risco à saúde associado:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_35")
         st.session_state.acidente_selecionado = st.session_state.sel_a_35
 
-        # --- BLOCo EXCLUSIVO DE ENGENHARIA DE QUEDA (NR-35) ---
+        # --- BLOCO EXCLUSIVO DE ENGENHARIA DE QUEDA (NR-35) ---
         if st.session_state.servico_selecionado:
             st.markdown("### 📐 Painel de Engenharia de Queda (NR-35)")
             h_cenario = st.number_input("Altura total do cenário (metros):", min_value=1.0, max_value=50.0, value=4.0, step=0.5)
@@ -232,19 +233,19 @@ with col_esquerda:
 with col_direita:
     st.header("🕹️ Painel de Decisões Técnicas")
     
-    if aba_ativa == "Aba Inicial":
-        st.info("👋 Bem-vindo ao Portal Multinormas! Selecione a aba da NR-33 ou NR-35 no topo para iniciar o simulador prático.")
+    if modulo == "Aba Inicial":
+        st.info("👋 Bem-vindo ao Portal Corretivo! Selecione a aba da NR-33 ou NR-35 acima para carregar o simulador prático.")
     
     elif not st.session_state.servico_selecionado or not st.session_state.acidente_selecionado:
         st.info("Configure os parâmetros da Ordem de Serviço à esquerda para liberar o painel da norma.")
     
-    elif aba_active_id == "nr35" and st.session_state.get("bloqueio_calculo_altura", False):
+    elif modulo == "NR-35 (Trabalho em Altura)" and st.session_state.get("bloqueio_calculo_altura", False):
         st.warning("⚠️ **PAINEL BLOQUEADO:** Corrija os parâmetros de Engenharia de Queda na coluna da esquerda. A atividade está suspensa devido ao risco de impacto contra o chão.")
         
     elif st.session_state.erro_procedimento:
         exibir_imagem_repositorio("Alerta_Seguranca.png", "Alerta SST")
         st.error("🚨 ALERTA DE SEGURANÇA: PROCEDIMENTO INCORRETO DETECTADO!")
-        fluxo_ativo = obter_fluxo_nr33() if aba_active_id == "nr33" else obter_fluxo_nr35()
+        fluxo_ativo = obter_fluxo_nr33() if modulo == "NR-33 (Espaço Confinado)" else obter_fluxo_nr35()
         st.markdown(f"**Ação violada:** *{fluxo_ativo[st.session_state.etapa_atual]['acao']}*")
         
         c_e1, c_e2 = st.columns(2)
@@ -258,12 +259,12 @@ with col_direita:
                 resetar_jogo()
                 st.rerun()
         else:
-            fluxo_seguranca = obter_fluxo_nr33() if aba_active_id == "nr33" else obter_fluxo_nr35()
+            fluxo_seguranca = obter_fluxo_nr33() if modulo == "NR-33 (Espaço Confinado)" else obter_fluxo_nr35()
             st.metric(label="⚠️ Desvios / Erros Cometidos na Missão", value=st.session_state.total_erros)
             
             if st.session_state.etapa_atual >= len(fluxo_seguranca):
                 st.balloons()
-                st.success(f"🎉 **Missão concluída com sucesso no módulo {aba_ativa}!**")
+                st.success(f"🎉 **Missão concluída com sucesso no módulo {modulo}!**")
                 st.info(f"📊 **Resultado Operacional:** Treinamento finalizado com **{st.session_state.total_erros} desvios** acumulados.")
                 if st.button("Iniciar Nova Simulação 🔄", use_container_width=True):
                     resetar_jogo()
@@ -298,25 +299,25 @@ with col_direita:
 
                 # Renderização Dinâmica das Equipes
                 st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
-                ocultar_vigia = (aba_active_id == "nr35") and ("Sem Vigia" in st.session_state.servico_selecionado)
+                ocultar_vigia = (modulo == "NR-35 (Trabalho em Altura)") and ("Sem Vigia" in st.session_state.servico_selecionado)
                 colunas_equipe = st.columns(3 if ocultar_vigia else 4)
                 
-                with colunas_equipe[0]:
+                with colunas_equipe:
                     exibir_imagem_repositorio("Supervisor.png", "Supervisor")
                     if st.button("Selecionar Supervisor", key="k_sup", use_container_width=True): avaliar_dupla("quem", "Supervisor")
-                with colunas_equipe[1]:
+                with colunas_equipe:
                     exibir_imagem_repositorio("Entrante.png", "Trabalhador")
                     if st.button("Selecionar Trabalhador", key="k_ent", use_container_width=True): avaliar_dupla("quem", "Entrante")
                     
                 if not ocultar_vigia:
-                    with colunas_equipe[2]:
+                    with colunas_equipe:
                         exibir_imagem_repositorio("Vigia.png", "Vigia Externo")
                         if st.button("Selecionar Vigia", key="k_vig", use_container_width=True): avaliar_dupla("quem", "Vigia")
-                    with colunas_equipe[3]:
+                    with colunas_equipe:
                         exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
                         if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
                 else:
-                    with colunas_equipe[2]:
+                    with colunas_equipe:
                         exibir_imagem_repositorio("Resgate1.png", "Equipe Resgate")
                         if st.button("Selecionar Resgate", key="k_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
 
@@ -360,7 +361,7 @@ with col_direita:
                     exibir_imagem_repositorio("TravaQuedas.png", "TravaQuedas")
                     if st.button("Acionar Trava-Quedas", key="k_tq", use_container_width=True): avaliar_dupla("o_que", "TravaQuedas")
 
-                st.markdown("#### 4. Equipamentos Individuais e Proteção de Trauma")
+                st.markdown("#### 🪖 4. Equipamentos Individuais e Proteção de Trauma")
                 o1, o2, o3, o4 = st.columns(4)
                 with o1:
                     exibir_imagem_repositorio("Cinto_Seguranca.png", "EPI")
@@ -395,7 +396,7 @@ with col_direita:
                         exibir_imagem_repositorio("Maca_Sked.png", "Maca Sked")
                         if st.button("Maca Sked Envelope", key="f_m3", use_container_width=True): avaliar_dupla("o_que", "MacaSked")
                     with f4:
-                        exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")
+                        exibir_imagem_repositorio("Talas_Ataduras.png", "Talas")                
                     if st.button("Talas e Ataduras", key="f_m4", use_container_width=True): 
                         avaliar_dupla("o_que", "Talas")
 
