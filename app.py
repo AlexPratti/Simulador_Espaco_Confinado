@@ -39,6 +39,20 @@ servicos_disponiveis = [
     "Manutenção Mecânica em Misturador Industrial"
 ]
 
+# DICIONÁRIO MAPEANDO O SERVIÇO PARA A SUA IMAGEM DE CENÁRIO
+MAPEAMENTO_CENARIOS = {
+    "Limpeza Química de Tanque de Combustível": "Tanque_Combustivel.png",
+    "Manutenção de Válvulas em Galeria Subterrânea": "Galeria_Subterr.png",
+    "Inspeção Estrutural em Silo de Grãos": "Silo_Graos.png",
+    "Reparo de Tubulação de Esgoto Ativo": "Tubulacao_Esgoto.png",
+    "Soldagem Interna em Caldeira Desativada": "Caldeira.png",
+    "Troca de Filtros em Reator Químico": "Reator.png",
+    "Revestimento Anticorrosivo em Cisterna de Água": "Cisterna.png",
+    "Passagem de Cabos em Poço de Visita (PV)": "Poco_Visita.png",
+    "Remoção de Resíduos em Caixa de Decantação": "Caixa_Decant.png",
+    "Manutenção Mecânica em Misturador Industrial": "Misturador.png"
+}
+
 # Relação de tipos de acidentes e problemas de saúde
 acidentes_disponiveis = [
     "Mal Súbito por Asfixia (Falta de Oxigênio)",
@@ -54,7 +68,8 @@ def resetar_jogo():
     st.session_state.erro_procedimento = False
     st.session_state.historico_acoes = []
     st.session_state.responsavel_selecionado = None
-# Geração dinâmica do fluxo técnico combinando o serviço e o acidente escolhido
+
+# Geração dinâmica do fluxo técnico atualizado
 def obter_fluxo_dinamico():
     acidente = st.session_state.acidente_selecionado or "Incidente"
     
@@ -103,15 +118,15 @@ def obter_fluxo_dinamico():
         },
         {
             "acao": "Montar e preparar a estrutura metálica de ancoragem, o sistema de vantagem mecânica e/ou movimentadores sobre o acesso",
-            "quem_correto": "Vigia",  # Mudança solicitada: Vigia monta na fase de preparação técnica
+            "quem_correto": "Vigia",
             "o_que_correto": "Tripe",
             "motivo": "Na fase de preparação preventiva, cabe ao Vigia inspecionar e estruturar o tripé e os sistemas de movimentação externa."
         },
         {
             "acao": "Equipar o cinto de segurança e descer pelo acesso para iniciar a realização da atividade prática interna",
             "quem_correto": "Entrante",
-            "o_que_correto": "Isolamento",
-            "motivo": "O entrante (trabalhador autorizado) acessa o interior de risco para executar a tarefa industrial."
+            "o_que_correto": "EPI",
+            "motivo": "O entrante acessa o interior portando o cinto paraquedista conectado com segurança à linha de vida."
         },
         {
             "acao": "Monitorar continuamente a atmosfera interna carregando o detector portátil junto a si durante o trabalho",
@@ -122,27 +137,34 @@ def obter_fluxo_dinamico():
         {
             "acao": "Permanecer do lado de fora em vigilância constante e comunicação contínua com os trabalhadores",
             "quem_correto": "Vigia",
-            "o_que_correto": "Sinalizacao",
-            "motivo": "O Vigia atua unicamente na área externa mantendo o posto de controle visual e rádio com a equipe interna."
+            "o_que_correto": "Comunicacao",
+            "motivo": "O Vigia atua mantendo o posto de controle visual e contato via rádio contínuo com a equipe interna."
         },
         {
             "acao": f"ATENÇÃO! OCORREU UM SINISTRO INTERNO: [{acidente}]. Acione o sistema de vantagem mecânica e guinchos do tripé para extração rápida e salvamento vertical do entrante",
-            "quem_correto": "Resgate",  # Mantido: Equipe de resgate opera na fase de salvamento
+            "quem_correto": "Resgate",
             "o_que_correto": "Tripe",
             "motivo": "No momento do acidente, a operação tática do sistema de vantagem mecânica e içamento vertical é de responsabilidade da Equipe de Resgate."
         }
     ]
-
 # --- ESTRUTURAÇÃO DO LAYOUT COLABORATIVO ---
 col_esquerda, col_direita = st.columns([1.1, 1.3], gap="large")
 
 with col_esquerda:
     st.header("📸 Análise do Espaço Confinado")
-    tab_frente, tab_topo = st.tabs(["👁️ Visão de Frente", "👁️ Visão de Topo"])
-    with tab_frente:
-        exibir_imagem_repositorio("Esp.Confinado.Frente.png", "Esp.Confinado.Frente.png")
-    with tab_topo:
-        exibir_imagem_repositorio("Esp.Confinado.Topo.png", "Esp.Confinado.Topo.png")
+    
+    # SELEÇÃO DINÂMICA DO CENÁRIO COM BASE NO SERVIÇO ATUAL
+    if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS:
+        imagem_cenario = MAPEAMENTO_CENARIOS[st.session_state.servico_selecionado]
+        st.subheader(f"📍 Cenário Ativo: {st.session_state.servico_selecionado}")
+        exibir_imagem_repositorio(imagem_cenario, "Imagem do Cenário Selecionado")
+    else:
+        # Se não escolheu nada ainda, mostra a visão genérica padrão
+        tab_frente, tab_topo = st.tabs(["👁️ Visão de Frente", "👁️ Visão de Topo"])
+        with tab_frente:
+            exibir_imagem_repositorio("Esp.Confinado.Frente.png", "Esp.Confinado.Frente.png")
+        with tab_topo:
+            exibir_imagem_repositorio("Esp.Confinado.Topo.png", "Esp.Confinado.Topo.png")
 
     st.markdown("---")
     st.header("🛠️ Configuração da Missão")
@@ -153,6 +175,7 @@ with col_esquerda:
     
     st.selectbox("2. Selecione o tipo de acidente/risco à saúde associado:", acidentes_disponiveis, index=None, placeholder="Escolha o sinistro potencial...", on_change=resetar_jogo, key="select_acidente")
     st.session_state.acidente_selecionado = st.session_state.select_acidente
+
 # --- COLUNA DIREITA: MECÂNICA DO SIMULADOR ---
 with col_direita:
     st.header("🕹️ Painel de Decisões Técnicas")
@@ -163,8 +186,9 @@ with col_direita:
     else:
         fluxo_seguranca = obter_fluxo_dinamico()
         
-        # CONTROLE DE TRATAMENTO DE ERROS SOLICITADO
+        # CONTROLE DE TRATAMENTO DE ERROS COM A NOVA IMAGEM DE ALERTA
         if st.session_state.erro_procedimento:
+            exibir_imagem_repositorio("Alerta_Seguranca.png", "Erro de Procedimento")
             st.error("🚨 ALERTA DE SEGURANÇA: PROCEDIMENTO INCORRETO DETECTADO!")
             passo_falho = fluxo_seguranca[st.session_state.etapa_atual]
             st.markdown(f"**Ação que gerou a não-conformidade:** *{passo_falho['acao']}*")
@@ -197,7 +221,6 @@ with col_direita:
             st.markdown("### 🎯 Próxima Ação Obrigatória:")
             st.warning(f"👉 **{passo_atual['acao']}**")
             
-            # Textos dinâmicos baseados no estado para evitar qualquer confusão técnica
             if st.session_state.responsavel_selecionado is None:
                 st.markdown("#### 🟥 **PASSO 1:** Clique primeiro no botão do **Responsável** pela tarefa:")
             else:
@@ -220,8 +243,7 @@ with col_direita:
                     else:
                         st.session_state.erro_procedimento = True
                 st.rerun()
-
-            # Renderização dos Profissionais
+            # 👥 1. Integrantes da Equipe
             st.markdown("#### 👥 1. Integrantes da Equipe (Quem faz?)")
             c1, c2, c3, c4 = st.columns(4)
             with c1:
@@ -237,7 +259,7 @@ with col_direita:
                 exibir_imagem_repositorio("Resgate1.png", "Resgate")
                 if st.button("Selecionar Resgate", key="b_res", use_container_width=True): avaliar_dupla("quem", "Resgate")
 
-            # Renderização dos Equipamentos, Controles e Documentos
+            # 🔒 2. Isolamento, Bloqueio e Documentação
             st.markdown("#### 🔒 2. Isolamento, Bloqueio e Documentação (O que utiliza?)")
             l1, l2, l3, l4, l5 = st.columns(5)
             with l1:
@@ -256,7 +278,8 @@ with col_direita:
                 exibir_imagem_repositorio("Cilindro_Teste_Resposta.png", "Teste Resposta")
                 if st.button("Acionar Bump Test", key="b_bt", use_container_width=True): avaliar_dupla("o_que", "Teste Resposta")
 
-            st.markdown("#### ⚙️ Sistemas Atmosféricos e Coletivos")
+            # ⚙️ 3. Systems Atmosféricos e Coletivos
+            st.markdown("#### ⚙️ 3. Sistemas Atmosféricos e Coletivos")
             e1, e2, e3 = st.columns(3)
             with e1:
                 exibir_imagem_repositorio("Ventilacao_Exaustao.png", "Ventilacao")
@@ -268,6 +291,44 @@ with col_direita:
                 exibir_imagem_repositorio("Tripe.png", "Tripe")
                 if st.button("Acionar Tripé / Linha Vida", key="b_tri", use_container_width=True): avaliar_dupla("o_que", "Tripe")
 
+            # 🪖 4. Segurança Individual e Comunicação
+            st.markdown("#### 🪖 4. Segurança Individual e Comunicação")
+            epi1, epi2 = st.columns(2)
+            with epi1:
+                exibir_imagem_repositorio("Cinto_Seguranca.png", "Cinto Paraquedista")
+                if st.button("Equipar Cinto / EPIs", key="b_epi", use_container_width=True): 
+                    avaliar_dupla("o_que", "EPI")
+            with epi2:
+                exibir_imagem_repositorio("Radio_Comunicacao.png", "Rádio HT")
+                if st.button("Iniciar Posto de Comunicação", key="b_com", use_container_width=True): 
+                    avaliar_dupla("o_que", "Comunicacao")
+
+            # 🚑 5. Atendimento Médico e Resgate Tático (Exibido no Passo Final)
+            if st.session_state.etapa_atual == (len(fluxo_seguranca) - 1):
+                st.markdown("---")
+                st.markdown("### 🚑 Recursos de Emergência Disponíveis:")
+                
+                # Alertas educacionais detalhados de acordo com o acidente
+                if "Queda" in st.session_state.acidente_selecionado:
+                    st.info("💡 **Dica Técnica de Resgate (Queda de Altura):** Vítimas com suspeita de trauma devem ser fixadas primeiro na **Maca Rígida** com o **Colar Cervical** para proteger a coluna. A estrutura rígida deve então ser envelopada dentro da **Maca Sked** para viabilizar o içamento vertical seguro pelo tripé. Utilize **Talas e Ataduras** para imobilizar e conter a hemorragia da fratura exposta no fêmur antes de mover a perna.")
+                elif "Asfixia" in st.session_state.acidente_selecionado or "Gases" in st.session_state.acidente_selecionado:
+                    st.info("💡 **Dica Técnica de Resgate (Gases/Asfixia):** A equipe de salvamento deve entrar obrigatoriamente equipada com **Respirador Autônomo** de cilindro próprio para não sofrer desmaio ou morte pela atmosfera perigosa interna.")
+
+                res1, res2, res3, res4 = st.columns(4)
+                with res1:
+                    exibir_imagem_repositorio("Respirador_Autonomo.png", "Proteção Respiratória")
+                    st.caption("Respirador Autônomo")
+                with res2:
+                    exibir_imagem_repositorio("Colar_Cervical.png", "Imobilização Cervical")
+                    st.caption("Colar Cervical + Maca Rígida")
+                with res3:
+                    exibir_imagem_repositorio("Maca_Sked.png", "Maca Envelope")
+                    st.caption("Maca Sked (Içamento Combinado)")
+                with res4:
+                    exibir_imagem_repositorio("Talas_Ataduras.png", "Primeiros Socorros")
+                    st.caption("Talas e Ataduras (Fraturas)")
+
+        # Renderização do histórico
         if st.session_state.historico_acoes:
             st.markdown("---")
             st.write("📋 **Histórico de Passos Concluídos com Sucesso:**")
