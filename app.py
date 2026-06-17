@@ -169,7 +169,7 @@ col_esquerda, col_direita = st.columns([1.1, 1.3], gap="large")
 
 with col_esquerda:
     # SELEÇÃO DINÂMICA DA IMAGEM DO CENÁRIO ATIVO NO TOPO
-    if aba_ativa == "NR-33 (Espaço Confinado)":
+    if modulo == "NR-33 (Espaço Confinado)":
         if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_33:
             st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
             exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_33[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
@@ -186,7 +186,7 @@ with col_esquerda:
         st.selectbox("2. Escolha o sinistro potencial:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_33")
         st.session_state.acidente_selecionado = st.session_state.sel_a_33
 
-    elif aba_ativa == "NR-35 (Trabalho em Altura)":
+    else:
         if st.session_state.servico_selecionado in MAPEAMENTO_CENARIOS_35:
             st.markdown(f"### 📍 Cenário: {st.session_state.servico_selecionado}")
             exibir_imagem_repositorio(MAPEAMENTO_CENARIOS_35[st.session_state.servico_selecionado], st.session_state.servico_selecionado)
@@ -200,6 +200,7 @@ with col_esquerda:
         st.session_state.servico_selecionado = st.session_state.sel_s_35
         st.selectbox("2. Escolha o risco à saúde associado:", acidentes_disponiveis, index=None, placeholder="Selecione...", on_change=resetar_jogo, key="sel_a_35")
         st.session_state.acidente_selecionado = st.session_state.sel_a_35
+
         # --- BLOCo EXCLUSIVO DE ENGENHARIA DE QUEDA (NR-35) ---
         if st.session_state.servico_selecionado:
             st.markdown("### 📐 Painel de Engenharia de Queda (NR-35)")
